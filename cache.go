@@ -4,6 +4,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/sirupsen/logrus"
 
+	"context"
 	"errors"
 	"time"
 )
@@ -16,7 +17,7 @@ type Cache struct {
 	name      string
 	logger    *logrus.Logger
 	headroom  time.Duration
-	tokenFunc func() (string, error)
+	tokenFunc func(ctx context.Context) (string, error)
 }
 
 // NewCache returns a new JWT cache.
@@ -26,7 +27,7 @@ func NewCache(opts ...Option) *Cache {
 		name:     "",
 		headroom: time.Second,
 		logger:   logrus.StandardLogger(),
-		tokenFunc: func() (s string, e error) {
+		tokenFunc: func(ctx context.Context) (s string, e error) {
 			return "", errors.New("not implemented")
 		},
 	}
@@ -48,7 +49,7 @@ type config struct {
 	name      string
 	logger    *logrus.Logger
 	headroom  time.Duration
-	tokenFunc func() (string, error)
+	tokenFunc func(ctx context.Context) (string, error)
 }
 
 // Option represents an option for the cache.
@@ -82,7 +83,7 @@ func Headroom(headroom time.Duration) Option {
 // TokenFunction set the function which is called to retrieve a new
 // JWT when required.
 // The default always returns an error with "not implemented".
-func TokenFunction(tokenFunc func() (string, error)) Option {
+func TokenFunction(tokenFunc func(ctx context.Context) (string, error)) Option {
 	return func(c *config) {
 		c.tokenFunc = tokenFunc
 	}
@@ -91,13 +92,13 @@ func TokenFunction(tokenFunc func() (string, error)) Option {
 // EnsureToken returns either the cached token if existing and still valid,
 // or calls the internal token function to fetch a new token. If an error
 // occurs in the latter case, it is passed trough.
-func (jwtCache *Cache) EnsureToken() (string, error) {
+func (jwtCache *Cache) EnsureToken(ctx context.Context) (string, error) {
 	// Do we have a cached jwt, and its still valid?
 	if jwtCache.jwt != "" && time.Now().Before(jwtCache.validity) {
 		return jwtCache.jwt, nil
 	}
 
-	token, err := jwtCache.tokenFunc()
+	token, err := jwtCache.tokenFunc(ctx)
 	if err != nil {
 		return "", err
 	}

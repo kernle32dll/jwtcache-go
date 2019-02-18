@@ -3,6 +3,7 @@ package jwt
 import (
 	"github.com/sirupsen/logrus"
 
+	"context"
 	"errors"
 	"sync"
 	"time"
@@ -18,7 +19,7 @@ type CacheMap struct {
 	name      string
 	logger    *logrus.Logger
 	headroom  time.Duration
-	tokenFunc func(key string) (string, error)
+	tokenFunc func(ctx context.Context, key string) (string, error)
 }
 
 // NewCacheMap returns a new mapped JWT cache.
@@ -28,7 +29,7 @@ func NewCacheMap(opts ...MapOption) *CacheMap {
 		name:     "",
 		headroom: time.Second,
 		logger:   logrus.StandardLogger(),
-		tokenFunc: func(key string) (s string, e error) {
+		tokenFunc: func(ctx context.Context, key string) (s string, e error) {
 			return "", errors.New("not implemented")
 		},
 	}
@@ -53,7 +54,7 @@ type mapConfig struct {
 	name      string
 	logger    *logrus.Logger
 	headroom  time.Duration
-	tokenFunc func(key string) (string, error)
+	tokenFunc func(ctx context.Context, key string) (string, error)
 }
 
 // MapOption represents an option for the mapped cache.
@@ -87,7 +88,7 @@ func MapHeadroom(headroom time.Duration) MapOption {
 // TokenFunction set the function which is called to retrieve a new
 // JWT when required.
 // The default always returns an error with "not implemented".
-func MapTokenFunction(tokenFunc func(key string) (string, error)) MapOption {
+func MapTokenFunction(tokenFunc func(ctx context.Context, key string) (string, error)) MapOption {
 	return func(c *mapConfig) {
 		c.tokenFunc = tokenFunc
 	}
@@ -96,7 +97,7 @@ func MapTokenFunction(tokenFunc func(key string) (string, error)) MapOption {
 // EnsureToken returns either the cached token if existing and still valid,
 // or calls the internal token function to fetch a new token. If an error
 // occurs in the latter case, it is passed trough.
-func (cacheMap *CacheMap) EnsureToken(key string) (string, error) {
+func (cacheMap *CacheMap) EnsureToken(ctx context.Context, key string) (string, error) {
 	readLock := cacheMap.lock.RLocker()
 	writeLock := cacheMap.lock
 
@@ -112,8 +113,8 @@ func (cacheMap *CacheMap) EnsureToken(key string) (string, error) {
 			Name(cacheMap.name+" for "+key),
 			Headroom(cacheMap.headroom),
 			Logger(cacheMap.logger),
-			TokenFunction(func() (string, error) {
-				return cacheMap.tokenFunc(key)
+			TokenFunction(func(ctx context.Context) (string, error) {
+				return cacheMap.tokenFunc(ctx, key)
 			}),
 		)
 
@@ -127,5 +128,5 @@ func (cacheMap *CacheMap) EnsureToken(key string) (string, error) {
 	// Ensure that we unlock, even if the key function misbehaves
 	defer readLock.Unlock()
 
-	return cache.EnsureToken()
+	return cache.EnsureToken(ctx)
 }
