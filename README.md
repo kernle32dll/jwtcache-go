@@ -2,7 +2,7 @@
 
 jwtcache-go is a small wrapper lib for caching JWTs.
 
-The initial purpose for developing this wrapper was caching tokens that were issued for service2service communication.
+The initial purpose for developing this lib was caching tokens that were issued for service2service communication.
 
 An exemplary use case for this are [Keycloak service accounts](https://www.keycloak.org/docs/4.8/server_admin/index.html#_service_accounts).
 
@@ -44,7 +44,7 @@ cached. However, the token is still passed trough (and a warning is logged).
 
 ### Further usage
 
-In addition to the `jwt.Cache`, this lib as an additional trick up its sleeve in the form of the `jwt.CacheMap`.
+In addition to the `jwt.Cache`, this lib has an additional trick up its sleeve in the form of `jwt.CacheMap`.
 
 A `jwt.CacheMap` behaves identically to a `jwt.Cache`, with the difference that - as the name suggest - the cache
 is actually a map compromised of several caches.
