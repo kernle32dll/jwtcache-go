@@ -105,14 +105,25 @@ func (jwtCache *Cache) EnsureToken() (string, error) {
 	// Work with the parsed token - but don't fail, if we encounter an error
 	parsedToken, _, err := new(jwt.Parser).ParseUnverified(token, &jwt.StandardClaims{})
 	if err == nil {
+		// Note: According to https://tools.ietf.org/html/rfc7519,
+		// a "NumericDate" is defined as a UTC unix timestamp.
 		iat := parsedToken.Claims.(*jwt.StandardClaims).IssuedAt
 		exp := parsedToken.Claims.(*jwt.StandardClaims).ExpiresAt
 
-		// Cache the new token (and leave 1s headroom)
-		jwtCache.jwt = token
-		jwtCache.validity = time.Unix(exp, 0).Add(-jwtCache.headroom)
+		if exp == 0 {
+			jwtCache.jwt = ""
+			jwtCache.logger.Infof("New %s received. Not 'exp' header set, so not caching", jwtCache.name)
+		} else {
+			// Cache the new token (and leave some headroom)
+			jwtCache.jwt = token
+			jwtCache.validity = time.Unix(exp, 0).Add(-jwtCache.headroom)
 
-		jwtCache.logger.Debugf("New %s received. Caching for %s", jwtCache.name, jwtCache.validity.Sub(time.Unix(iat, 0).Add(-jwtCache.headroom)))
+			if iat != 0 {
+				jwtCache.logger.Debugf("New %s received. Caching for %s", jwtCache.name, jwtCache.validity.Sub(time.Unix(iat, 0).Add(-jwtCache.headroom)))
+			} else {
+				jwtCache.logger.Debugf("New %s received. Caching till %s", jwtCache.name, jwtCache.validity.Add(-jwtCache.headroom))
+			}
+		}
 	} else {
 		jwtCache.logger.Debugf("Error while parsing %s: %s", jwtCache.name, err)
 	}
