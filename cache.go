@@ -5,6 +5,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -104,29 +105,71 @@ func (jwtCache *Cache) EnsureToken() (string, error) {
 
 	// Work with the parsed token - but don't fail, if we encounter an error
 	parsedToken, _, err := new(jwt.Parser).ParseUnverified(token, &jwt.StandardClaims{})
-	if err == nil {
-		// Note: According to https://tools.ietf.org/html/rfc7519,
-		// a "NumericDate" is defined as a UTC unix timestamp.
-		iat := parsedToken.Claims.(*jwt.StandardClaims).IssuedAt
-		exp := parsedToken.Claims.(*jwt.StandardClaims).ExpiresAt
-
-		if exp == 0 {
-			jwtCache.jwt = ""
-			jwtCache.logger.Infof("New %s received. Not 'exp' header set, so not caching", jwtCache.name)
-		} else {
-			// Cache the new token (and leave some headroom)
-			jwtCache.jwt = token
-			jwtCache.validity = time.Unix(exp, 0).Add(-jwtCache.headroom)
-
-			if iat != 0 {
-				jwtCache.logger.Debugf("New %s received. Caching for %s", jwtCache.name, jwtCache.validity.Sub(time.Unix(iat, 0).Add(-jwtCache.headroom)))
-			} else {
-				jwtCache.logger.Debugf("New %s received. Caching till %s", jwtCache.name, jwtCache.validity.Add(-jwtCache.headroom))
-			}
-		}
-	} else {
+	if err != nil {
 		jwtCache.logger.Debugf("Error while parsing %s: %s", jwtCache.name, err)
+		return token, nil
 	}
 
+	jwtCache.handleParsedToken(parsedToken)
 	return token, nil
+}
+
+// EnsureTokenSafe returns either the cached token if existing and still valid,
+// or calls the internal token function to fetch a new token. If an error
+// occurs in the latter case, it is passed trough.
+// In contrast to EnsureToken, this function also validates the received JWT.
+func (jwtCache *Cache) EnsureTokenSafe(secret interface{}, method string) (string, error) {
+	// Do we have a cached jwt, and its still valid?
+	if jwtCache.jwt != "" && time.Now().Before(jwtCache.validity) {
+		return jwtCache.jwt, nil
+	}
+
+	algMethod := jwt.GetSigningMethod(method)
+	if algMethod == nil {
+		return "", fmt.Errorf("unknown signing method: %s", method)
+	}
+
+	token, err := jwtCache.tokenFunc()
+	if err != nil {
+		return "", err
+	}
+
+	// Work with the parsed token
+	parsedToken, err := jwt.ParseWithClaims(token, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if token.Method != jwt.GetSigningMethod(method) {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return secret, nil
+	})
+	if err != nil {
+		// Note: In contrast to EnsureToken, we do not return the token, if we failed to parse or validate it!
+		jwtCache.logger.Debugf("Error while parsing %s: %s", jwtCache.name, err)
+		return "", err
+	}
+
+	jwtCache.handleParsedToken(parsedToken)
+	return token, nil
+}
+
+func (jwtCache *Cache) handleParsedToken(parsedToken *jwt.Token) {
+	// Note: According to https://tools.ietf.org/html/rfc7519,
+	// a "NumericDate" is defined as a UTC unix timestamp.
+	iat := parsedToken.Claims.(*jwt.StandardClaims).IssuedAt
+	exp := parsedToken.Claims.(*jwt.StandardClaims).ExpiresAt
+
+	if exp == 0 {
+		jwtCache.jwt = ""
+		jwtCache.logger.Infof("New %s received. exp header not set, so not caching", jwtCache.name)
+	} else {
+		// Cache the new token (and leave some headroom)
+		jwtCache.jwt = parsedToken.Raw
+		jwtCache.validity = time.Unix(exp, 0).Add(-jwtCache.headroom)
+
+		if iat != 0 {
+			jwtCache.logger.Debugf("New %s received. Caching for %s", jwtCache.name, jwtCache.validity.Sub(time.Unix(iat, 0).Add(-jwtCache.headroom)))
+		} else {
+			jwtCache.logger.Debugf("New %s received. Caching till %s", jwtCache.name, jwtCache.validity.Add(-jwtCache.headroom))
+		}
+	}
 }

@@ -97,6 +97,18 @@ func MapTokenFunction(tokenFunc func(key string) (string, error)) MapOption {
 // or calls the internal token function to fetch a new token. If an error
 // occurs in the latter case, it is passed trough.
 func (cacheMap *CacheMap) EnsureToken(key string) (string, error) {
+	return cacheMap.handleCacheExistence(key).EnsureToken()
+}
+
+// EnsureTokenSafe returns either the cached token if existing and still valid,
+// or calls the internal token function to fetch a new token. If an error
+// occurs in the latter case, it is passed trough.
+// In contrast to EnsureToken, this function also validates the received JWT.
+func (cacheMap *CacheMap) EnsureTokenSafe(key string, secret interface{}, method string) (string, error) {
+	return cacheMap.handleCacheExistence(key).EnsureTokenSafe(secret, method)
+}
+
+func (cacheMap *CacheMap) handleCacheExistence(key string) *Cache {
 	readLock := cacheMap.lock.RLocker()
 	writeLock := cacheMap.lock
 
@@ -104,11 +116,7 @@ func (cacheMap *CacheMap) EnsureToken(key string) (string, error) {
 
 	cache, exists := cacheMap.jwtMap[key]
 	if !exists {
-		// Trade read lock for write lock
-		readLock.Unlock()
-		writeLock.Lock()
-
-		cacheMap.jwtMap[key] = NewCache(
+		cache = NewCache(
 			Name(cacheMap.name+" for "+key),
 			Headroom(cacheMap.headroom),
 			Logger(cacheMap.logger),
@@ -117,15 +125,15 @@ func (cacheMap *CacheMap) EnsureToken(key string) (string, error) {
 			}),
 		)
 
-		cache = cacheMap.jwtMap[key]
+		// Trade read lock for write lock
+		readLock.Unlock()
 
-		// Trade write lock for read lock
+		writeLock.Lock()
+		cacheMap.jwtMap[key] = cache
 		writeLock.Unlock()
-		readLock.Lock()
+	} else {
+		readLock.Unlock()
 	}
 
-	// Ensure that we unlock, even if the key function misbehaves
-	defer readLock.Unlock()
-
-	return cache.EnsureToken()
+	return cache
 }
