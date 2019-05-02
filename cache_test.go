@@ -1,11 +1,12 @@
 package jwt
 
 import (
+	"github.com/dgrijalva/jwt-go"
+	"github.com/sirupsen/logrus"
+
 	"context"
 	"errors"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
 )

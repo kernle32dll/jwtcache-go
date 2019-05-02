@@ -133,9 +133,17 @@ func (jwtCache *Cache) EnsureToken(ctx context.Context) (string, error) {
 			jwtCache.validity = time.Unix(exp, 0).Add(-jwtCache.headroom)
 
 			if iat != 0 {
-				jwtCache.logger.Debugf("New %s received. Caching for %s", jwtCache.name, jwtCache.validity.Sub(time.Unix(iat, 0).Add(-jwtCache.headroom)))
+				jwtCache.logger.Debugf(
+					"New %s received. Caching for %s",
+					jwtCache.name,
+					jwtCache.validity.Sub(time.Unix(iat, 0).Add(-jwtCache.headroom)),
+				)
 			} else {
-				jwtCache.logger.Debugf("New %s received. Caching till %s", jwtCache.name, jwtCache.validity.Add(-jwtCache.headroom))
+				jwtCache.logger.Debugf(
+					"New %s received. Caching till %s",
+					jwtCache.name,
+					jwtCache.validity.Add(-jwtCache.headroom),
+				)
 			}
 		}
 	} else {
