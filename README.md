@@ -1,3 +1,8 @@
+[![Build Status](https://travis-ci.com/kernle32dll/jwtcache-go.svg?branch=master)](https://travis-ci.com/kernle32dll/jwtcache-go)
+[![GoDoc](https://godoc.org/github.com/kernle32dll/jwtcache-go?status.svg)](http://godoc.org/github.com/kernle32dll/jwtcache-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kernle32dll/jwtcache-go)](https://goreportcard.com/report/github.com/kernle32dll/jwtcache-go)
+[![codecov](https://codecov.io/gh/kernle32dll/jwtcache-go/branch/master/graph/badge.svg)](https://codecov.io/gh/kernle32dll/jwtcache-go)
+
 # jwtcache-go
 
 jwtcache-go is a small wrapper lib for caching JWTs.
