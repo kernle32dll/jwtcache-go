@@ -15,13 +15,20 @@ var (
 	ErrNotImplemented = errors.New("not implemented")
 )
 
+// LoggerContract defines the logging methods required by the cache.
+// This allows to use different kinds of logging libraries.
+type LoggerContract interface {
+	Infof(format string, args ...interface{})
+	Debugf(format string, args ...interface{})
+}
+
 // Cache is a simple caching implementation to reuse JWTs till they expire.
 type Cache struct {
 	jwt      string
 	validity time.Time
 
 	name      string
-	logger    *logrus.Logger
+	logger    LoggerContract
 	headroom  time.Duration
 	tokenFunc func(ctx context.Context) (string, error)
 }
@@ -53,7 +60,7 @@ func NewCache(opts ...Option) *Cache {
 
 type config struct {
 	name      string
-	logger    *logrus.Logger
+	logger    LoggerContract
 	headroom  time.Duration
 	tokenFunc func(ctx context.Context) (string, error)
 }
@@ -71,7 +78,7 @@ func Name(name string) Option {
 
 // Name sets the logger to be used.
 // The default is the logrus default logger.
-func Logger(logger *logrus.Logger) Option {
+func Logger(logger LoggerContract) Option {
 	return func(c *config) {
 		c.logger = logger
 	}

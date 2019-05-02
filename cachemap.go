@@ -16,7 +16,7 @@ type CacheMap struct {
 	lock   *sync.RWMutex
 
 	name      string
-	logger    *logrus.Logger
+	logger    LoggerContract
 	headroom  time.Duration
 	tokenFunc func(ctx context.Context, key string) (string, error)
 }
@@ -51,7 +51,7 @@ func NewCacheMap(opts ...MapOption) *CacheMap {
 
 type mapConfig struct {
 	name      string
-	logger    *logrus.Logger
+	logger    LoggerContract
 	headroom  time.Duration
 	tokenFunc func(ctx context.Context, key string) (string, error)
 }
@@ -69,7 +69,7 @@ func MapName(name string) MapOption {
 
 // MapLogger sets the logger to be used.
 // The default is the logrus default logger.
-func MapLogger(logger *logrus.Logger) MapOption {
+func MapLogger(logger LoggerContract) MapOption {
 	return func(c *mapConfig) {
 		c.logger = logger
 	}
