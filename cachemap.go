@@ -75,7 +75,7 @@ func MapLogger(logger LoggerContract) MapOption {
 	}
 }
 
-// Headroom sets the headroom on how much earlier the cached
+// MapHeadroom sets the headroom on how much earlier the cached
 // tokens should be considered expired.
 // The default is 1 second.
 func MapHeadroom(headroom time.Duration) MapOption {
@@ -84,7 +84,7 @@ func MapHeadroom(headroom time.Duration) MapOption {
 	}
 }
 
-// TokenFunction set the function which is called to retrieve a new
+// MapTokenFunction set the function which is called to retrieve a new
 // JWT when required.
 // The default always returns an error with "not implemented".
 func MapTokenFunction(tokenFunc func(ctx context.Context, key string) (string, error)) MapOption {

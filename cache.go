@@ -76,7 +76,7 @@ func Name(name string) Option {
 	}
 }
 
-// Name sets the logger to be used.
+// Logger sets the logger to be used.
 // The default is the logrus default logger.
 func Logger(logger LoggerContract) Option {
 	return func(c *config) {
