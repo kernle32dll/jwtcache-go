@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+var (
+	// ErrNotImplemented is the default behavior for the cache, if the
+	// token function is not supplied.
+	ErrNotImplemented = errors.New("not implemented")
+)
+
 // Cache is a simple caching implementation to reuse JWTs till they expire.
 type Cache struct {
 	jwt      string
@@ -28,7 +34,7 @@ func NewCache(opts ...Option) *Cache {
 		headroom: time.Second,
 		logger:   logrus.StandardLogger(),
 		tokenFunc: func(ctx context.Context) (s string, e error) {
-			return "", errors.New("not implemented")
+			return "", ErrNotImplemented
 		},
 	}
 

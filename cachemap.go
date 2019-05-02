@@ -4,7 +4,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"context"
-	"errors"
 	"sync"
 	"time"
 )
@@ -30,7 +29,7 @@ func NewCacheMap(opts ...MapOption) *CacheMap {
 		headroom: time.Second,
 		logger:   logrus.StandardLogger(),
 		tokenFunc: func(ctx context.Context, key string) (s string, e error) {
-			return "", errors.New("not implemented")
+			return "", ErrNotImplemented
 		},
 	}
 
