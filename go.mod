@@ -1,5 +1,7 @@
 module github.com/kernle32dll/jwtcache-go
 
+go 1.12
+
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
