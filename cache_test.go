@@ -7,22 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"testing"
 	"time"
 )
-
-// testLogger pipes the logging output to the test logger.
-type testLogger struct {
-	t *testing.T
-}
-
-func (logger testLogger) Infof(format string, args ...interface{}) {
-	logger.t.Logf(format, args...)
-}
-
-func (logger testLogger) Debugf(format string, args ...interface{}) {
-	logger.t.Logf(format, args...)
-}
 
 func getJwt(claims jwt.MapClaims) (string, error) {
 	c := claims
@@ -100,10 +88,13 @@ func Test_Cache_Defaults(t *testing.T) {
 // Tests that EnsureToken returns the exact error, if any occurred
 // while retrieving a new token.
 func Test_Cache_EnsureToken_TokenError(t *testing.T) {
+	logger := logrus.New()
+	logger.Out = ioutil.Discard
+
 	// given
 	expectedErr := errors.New("expected error")
 	cache := NewCache(
-		Logger(&testLogger{t}),
+		Logger(logger),
 		TokenFunction(func(ctx context.Context) (s string, e error) {
 			return "", expectedErr
 		}),
@@ -125,9 +116,12 @@ func Test_Cache_EnsureToken_TokenError(t *testing.T) {
 // Tests that EnsureToken correctly caches the token, and does not
 // call the token function multiple times.
 func Test_Cache_EnsureToken_Cache(t *testing.T) {
+	logger := logrus.New()
+	logger.Out = ioutil.Discard
+
 	// given
 	cache := NewCache(
-		Logger(&testLogger{t}),
+		Logger(logger),
 		TokenFunction(getTokenFunction()),
 	)
 
@@ -152,9 +146,12 @@ func Test_Cache_EnsureToken_Cache(t *testing.T) {
 // Tests that EnsureToken correctly invalidates the cache, if the previous
 // cached token expires
 func Test_Cache_EnsureToken_Cache_Invalidation(t *testing.T) {
+	logger := logrus.New()
+	logger.Out = ioutil.Discard
+
 	// given
 	cache := NewCache(
-		Logger(&testLogger{t}),
+		Logger(logger),
 		TokenFunction(getExpiredTokenFunction()),
 	)
 
@@ -179,9 +176,12 @@ func Test_Cache_EnsureToken_Cache_Invalidation(t *testing.T) {
 // Tests that EnsureToken does not cache the token, if the
 // token provides not exp claim.
 func Test_Cache_EnsureToken_NoExp(t *testing.T) {
+	logger := logrus.New()
+	logger.Out = ioutil.Discard
+
 	// given
 	cache := NewCache(
-		Logger(&testLogger{t}),
+		Logger(logger),
 		TokenFunction(getTokenFunctionWithoutExp()),
 	)
 
@@ -206,9 +206,12 @@ func Test_Cache_EnsureToken_NoExp(t *testing.T) {
 // Tests that EnsureToken correctly caches the token, and does not
 // call the token function multiple times - even if the iat claim is missing.
 func Test_Cache_EnsureToken_NoIat(t *testing.T) {
+	logger := logrus.New()
+	logger.Out = ioutil.Discard
+
 	// given
 	cache := NewCache(
-		Logger(&testLogger{t}),
+		Logger(logger),
 		TokenFunction(getTokenFunctionWithoutIat()),
 	)
 
@@ -233,10 +236,13 @@ func Test_Cache_EnsureToken_NoIat(t *testing.T) {
 // Tests that EnsureToken does return the received token, even
 // if it can't be parsed for caching usage.
 func Test_Cache_EnsureToken_BrokenParser(t *testing.T) {
+	logger := logrus.New()
+	logger.Out = ioutil.Discard
+
 	// given
 	counter := 0
 	cache := NewCache(
-		Logger(&testLogger{t}),
+		Logger(logger),
 		TokenFunction(func(ctx context.Context) (s string, e error) {
 			counter++
 			return fmt.Sprintf("not-a-valid-token-%d", counter), nil

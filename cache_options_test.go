@@ -1,29 +1,13 @@
 package jwt
 
 import (
+	"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
+
 	"context"
 	"testing"
 	"time"
 )
-
-// loggerMock is a LoggerContract mock, which captures the input.
-type loggerMock struct {
-	capturedInfoFormat  string
-	capturedInfoArgs    []interface{}
-	capturedDebugFormat string
-	capturedDebugArgs   []interface{}
-}
-
-func (logger *loggerMock) Infof(format string, args ...interface{}) {
-	logger.capturedInfoFormat = format
-	logger.capturedInfoArgs = args
-}
-
-func (logger *loggerMock) Debugf(format string, args ...interface{}) {
-	logger.capturedDebugFormat = format
-	logger.capturedDebugArgs = args
-
-}
 
 // Tests that the Name option correctly applies.
 func Test_Option_Name(t *testing.T) {
@@ -43,29 +27,29 @@ func Test_Option_Name(t *testing.T) {
 // Tests that the Logger option correctly applies.
 func Test_Option_Logger(t *testing.T) {
 	// given
-	oldLogger := &loggerMock{}
-	newLogger := &loggerMock{}
+	oldLogger, oldLoggerHook := test.NewNullLogger()
+	newLogger, newLoggerHook := test.NewNullLogger()
+	newLogger.Level = logrus.DebugLevel
 
 	option := Logger(newLogger)
 	options := &config{logger: oldLogger}
 
 	// when
 	option(options)
-	options.logger.Infof("foo", "bar")
-	options.logger.Debugf("kaese", "broed")
+	options.logger.Infof("foo %s", "bar")
+	options.logger.Debugf("kaese %s", "broed")
 
 	// then
-	if newLogger.capturedInfoFormat != "foo" || newLogger.capturedInfoArgs[0] != "bar" {
-		t.Errorf("logger not correctly applied, got %s ; %s", newLogger.capturedInfoFormat, newLogger.capturedInfoArgs)
+	if lastEntry := newLoggerHook.Entries[0]; lastEntry.Message != "foo bar" || lastEntry.Level != logrus.InfoLevel {
+		t.Errorf("logger not correctly applied. Expected %q@%s got %q@%s", "foo bar", logrus.InfoLevel, lastEntry.Message, lastEntry.Level)
 	}
 
-	if newLogger.capturedDebugFormat != "kaese" || newLogger.capturedDebugArgs[0] != "broed" {
-		t.Errorf("logger not correctly applied, got %s ; %s", newLogger.capturedDebugFormat, newLogger.capturedDebugArgs)
+	if lastEntry := newLoggerHook.Entries[1]; lastEntry.Message != "kaese broed" || lastEntry.Level != logrus.DebugLevel {
+		t.Errorf("logger not correctly applied. Expected %q@%s got %q@%s", "kaese broed", logrus.DebugLevel, lastEntry.Message, lastEntry.Level)
 	}
 
 	// ensure old logger sees no usage
-	if oldLogger.capturedInfoFormat != "" || len(oldLogger.capturedInfoArgs) > 0 ||
-		oldLogger.capturedDebugFormat != "" || len(oldLogger.capturedDebugArgs) > 0 {
+	if len(oldLoggerHook.AllEntries()) > 0 {
 		t.Errorf("logger not correctly applied, old logger was used at least once")
 	}
 }
