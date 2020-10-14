@@ -19,7 +19,7 @@ go get github.com/kernle32dll/jwtcache-go
 
 Detailed documentation can be found on [GoDoc](https://godoc.org/github.com/kernle32dll/jwtcache-go).
 
-### Usage
+## Usage
 
 First, you have to instantiate a `jwt.Cache`. This is done via `jwt.NewCache` (which takes option style parameters).
 
@@ -47,7 +47,7 @@ token, err := jwt.EnsureToken(context.Background())
 **Implementation detail**: The validity check is done via the `exp` claim of the JWT. If it is not set, the token is never
 cached. However, the token is still passed trough (and a warning is logged).
 
-### Further usage
+## Further usage
 
 In addition to the `jwt.Cache`, this lib has an additional trick up its sleeve in the form of `jwt.CacheMap`.
 
@@ -69,3 +69,7 @@ The use-case `jwt.CacheMap` was implemented for was multi-tenant applications, w
 JWTs per tenant (a good cache key might be the UUID of a tenant, for example).
 
 **Implementation detail**: The underlying map is concurrency-safe, and lazily initialized.
+
+## Compatibility
+
+jwt-cache-go is automatically tested against Go 1.13.X, 1.14.X and 1.15.X.
