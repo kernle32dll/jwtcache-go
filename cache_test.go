@@ -21,7 +21,12 @@ func getJwt(claims map[string]interface{}) (string, error) {
 
 	// Ensure new token on every invocation - iat and exp are only second-precise,
 	// and thus don't warrant a new token without annoying sleep statements in tests.
-	if err := token.Set("breaker", time.Now()); err != nil {
+	randomKey := make([]byte, 128)
+	if _, err := rand.Read(randomKey); err != nil {
+		return "", err
+	}
+
+	if err := token.Set("breaker", randomKey); err != nil {
 		return "", err
 	}
 
