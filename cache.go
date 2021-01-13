@@ -6,6 +6,7 @@ import (
 
 	"context"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -27,10 +28,12 @@ type Cache struct {
 	jwt      string
 	validity time.Time
 
-	name      string
-	logger    LoggerContract
-	headroom  time.Duration
-	tokenFunc func(ctx context.Context) (string, error)
+	name             string
+	logger           LoggerContract
+	headroom         time.Duration
+	tokenFunc        func(ctx context.Context) (string, error)
+	parseOptions     []jwt.Option
+	rejectUnparsable bool
 }
 
 // NewCache returns a new JWT cache.
@@ -43,6 +46,8 @@ func NewCache(opts ...Option) *Cache {
 		tokenFunc: func(ctx context.Context) (s string, e error) {
 			return "", ErrNotImplemented
 		},
+		parseOptions:     nil,
+		rejectUnparsable: false,
 	}
 
 	//apply opts
@@ -51,18 +56,22 @@ func NewCache(opts ...Option) *Cache {
 	}
 
 	return &Cache{
-		name:      config.name,
-		logger:    config.logger,
-		headroom:  config.headroom,
-		tokenFunc: config.tokenFunc,
+		name:             config.name,
+		logger:           config.logger,
+		headroom:         config.headroom,
+		tokenFunc:        config.tokenFunc,
+		parseOptions:     config.parseOptions,
+		rejectUnparsable: config.rejectUnparsable,
 	}
 }
 
 type config struct {
-	name      string
-	logger    LoggerContract
-	headroom  time.Duration
-	tokenFunc func(ctx context.Context) (string, error)
+	name             string
+	logger           LoggerContract
+	headroom         time.Duration
+	tokenFunc        func(ctx context.Context) (string, error)
+	parseOptions     []jwt.Option
+	rejectUnparsable bool
 }
 
 // Option represents an option for the cache.
@@ -102,6 +111,27 @@ func TokenFunction(tokenFunc func(ctx context.Context) (string, error)) Option {
 	}
 }
 
+// ParseOptions set the parse options which are used to parse
+// a JWT. This can be used to implement signature validation for example.
+//
+// The default empty.
+func ParseOptions(parseOptions ...jwt.Option) Option {
+	return func(c *config) {
+		c.parseOptions = parseOptions
+	}
+}
+
+// RejectUnparsable sets if the cache should reject (and return
+// the accompanying error) token which are not parsable.
+// Note, unparsable can mean a failed signature check.
+//
+// The default is false.
+func RejectUnparsable(rejectUnparsable bool) Option {
+	return func(c *config) {
+		c.rejectUnparsable = rejectUnparsable
+	}
+}
+
 // EnsureToken returns either the cached token if existing and still valid,
 // or calls the internal token function to fetch a new token. If an error
 // occurs in the latter case, it is passed trough.
@@ -117,7 +147,11 @@ func (jwtCache *Cache) EnsureToken(ctx context.Context) (string, error) {
 	}
 
 	// Work with the parsed token - but don't fail, if we encounter an error
-	parsedToken, err := jwt.ParseString(token)
+	parsedToken, err := jwt.ParseString(token, jwtCache.parseOptions...)
+	if err != nil && jwtCache.rejectUnparsable {
+		return "", fmt.Errorf("failed to parse token: %w", err)
+	}
+
 	if err == nil {
 		// Note: According to https://tools.ietf.org/html/rfc7519,
 		// a "NumericDate" is defined as a UTC unix timestamp.

@@ -280,3 +280,33 @@ func Test_Cache_EnsureToken_BrokenParser(t *testing.T) {
 		t.Errorf("token was cached, but was not supposed to")
 	}
 }
+
+// Tests that EnsureToken does return a parsing error, if RejectUnparsable
+// is enabled, and the token cannot be parsed (e.g. due to a signing error)
+func Test_Cache_EnsureToken_BrokenParser_Reject(t *testing.T) {
+	logger := logrus.New()
+	logger.Out = ioutil.Discard
+
+	// given
+	counter := 0
+	cache := NewCache(
+		Logger(logger),
+		TokenFunction(func(ctx context.Context) (s string, e error) {
+			counter++
+			return fmt.Sprintf("not-a-valid-token-%d", counter), nil
+		}),
+		RejectUnparsable(true),
+	)
+
+	// when
+	token, firstErr := cache.EnsureToken(context.Background())
+
+	// then
+	if firstErr == nil {
+		t.Error("expected error, but got none")
+	}
+
+	if token != "" {
+		t.Errorf("received token %q, not expected none", token)
+	}
+}
