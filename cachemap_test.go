@@ -1,7 +1,7 @@
 package jwt
 
 import (
-	"github.com/dgrijalva/jwt-go"
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/sirupsen/logrus"
 
 	"context"
@@ -18,17 +18,17 @@ func getMapTokenFunction() func(ctx context.Context, key string) (string, error)
 	exp := now.Add(time.Hour)
 
 	return func(ctx context.Context, key string) (string, error) {
-		return getJwt(jwt.MapClaims{
-			"iat": iat.Unix(),
-			"exp": exp.Unix(),
+		return getJwt(map[string]interface{}{
+			jwt.IssuedAtKey:   iat.UTC(),
+			jwt.ExpirationKey: exp.UTC(),
 		})
 	}
 }
 
 func getMapTokenFunctionWithoutIat() func(ctx context.Context, key string) (string, error) {
 	return func(ctx context.Context, key string) (string, error) {
-		return getJwt(jwt.MapClaims{
-			"exp": time.Now().Add(time.Hour).Unix(),
+		return getJwt(map[string]interface{}{
+			jwt.ExpirationKey: time.Now().Add(time.Hour).UTC(),
 		})
 	}
 }
@@ -37,17 +37,17 @@ func getMapExpiredTokenFunction() func(ctx context.Context, key string) (string,
 	now := time.Now()
 
 	return func(ctx context.Context, key string) (string, error) {
-		return getJwt(jwt.MapClaims{
-			"iat": now.Add(-time.Hour).Unix(),
-			"exp": now.Add(-time.Hour).Unix(),
+		return getJwt(map[string]interface{}{
+			jwt.IssuedAtKey:   now.Add(-time.Hour).UTC(),
+			jwt.ExpirationKey: now.Add(-time.Hour).UTC(),
 		})
 	}
 }
 
 func getMapTokenFunctionWithoutExp() func(ctx context.Context, key string) (string, error) {
 	return func(ctx context.Context, key string) (string, error) {
-		return getJwt(jwt.MapClaims{
-			"iat": time.Now().Add(-time.Hour).Unix(),
+		return getJwt(map[string]interface{}{
+			jwt.IssuedAtKey: time.Now().Add(-time.Hour).UTC(),
 		})
 	}
 }
