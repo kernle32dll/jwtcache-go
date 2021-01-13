@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/kernle32dll/jwtcache-go.svg?branch=master)](https://travis-ci.com/kernle32dll/jwtcache-go)
+![test](https://github.com/kernle32dll/jwtcache-go/workflows/test/badge.svg)
 [![Go Reference](https://pkg.go.dev/badge/github.com/kernle32dll/jwtcache-go.svg)](https://pkg.go.dev/github.com/kernle32dll/jwtcache-go)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kernle32dll/jwtcache-go)](https://goreportcard.com/report/github.com/kernle32dll/jwtcache-go)
 [![codecov](https://codecov.io/gh/kernle32dll/jwtcache-go/branch/master/graph/badge.svg)](https://codecov.io/gh/kernle32dll/jwtcache-go)
