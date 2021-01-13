@@ -6,6 +6,9 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -96,6 +99,14 @@ func Test_Cache_Defaults(t *testing.T) {
 
 	if _, err := cache.tokenFunc(context.Background()); err != ErrNotImplemented {
 		t.Error("default token function not correctly applied")
+	}
+
+	if len(cache.parseOptions) != 0 {
+		t.Error("default parser options not correctly applied")
+	}
+
+	if cache.rejectUnparsable {
+		t.Error("default reject unparsable flag not correctly applied")
 	}
 }
 
@@ -308,5 +319,46 @@ func Test_Cache_EnsureToken_BrokenParser_Reject(t *testing.T) {
 
 	if token != "" {
 		t.Errorf("received token %q, not expected none", token)
+	}
+}
+
+// Tests that EnsureToken correctly verifies JWT signatures,
+// if configured.
+func Test_Cache_EnsureToken_Signed_JWT(t *testing.T) {
+	logger := logrus.New()
+	logger.Out = ioutil.Discard
+
+	ecdsaPrivateKey, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	if err != nil {
+		t.FailNow()
+	}
+	ecdsaPublicKey := ecdsaPrivateKey.Public()
+
+	// given
+	cache := NewCache(
+		Logger(logger),
+		TokenFunction(func(ctx context.Context) (s string, e error) {
+			signedToken, err := jwt.Sign(jwt.New(), jwa.ES512, ecdsaPrivateKey)
+			if err != nil {
+				return "", err
+			}
+
+			return string(signedToken), nil
+		}),
+		ParseOptions(jwt.WithVerify(jwa.ES512, ecdsaPublicKey)),
+		// Set, so that verification fails if we provide a wrong JWT in the
+		RejectUnparsable(true),
+	)
+
+	// when
+	token, err := cache.EnsureToken(context.Background())
+
+	// then
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+
+	if token == "" {
+		t.Error("expected token, but got none")
 	}
 }
