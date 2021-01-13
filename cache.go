@@ -158,7 +158,7 @@ func (jwtCache *Cache) EnsureToken(ctx context.Context) (string, error) {
 		iat := parsedToken.IssuedAt()
 		exp := parsedToken.Expiration()
 
-		if exp.Unix() == 0 {
+		if exp.IsZero() {
 			jwtCache.jwt = ""
 			jwtCache.logger.Infof("New %s received. Not 'exp' header set, so not caching", jwtCache.name)
 		} else {
@@ -166,7 +166,7 @@ func (jwtCache *Cache) EnsureToken(ctx context.Context) (string, error) {
 			jwtCache.jwt = token
 			jwtCache.validity = exp.Add(-jwtCache.headroom)
 
-			if iat.Unix() != 0 {
+			if !iat.IsZero() {
 				jwtCache.logger.Debugf(
 					"New %s received. Caching for %s",
 					jwtCache.name,
