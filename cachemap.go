@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/sirupsen/logrus"
 
 	"context"
@@ -15,10 +16,12 @@ type CacheMap struct {
 	jwtMap map[string]*Cache
 	lock   *sync.RWMutex
 
-	name      string
-	logger    LoggerContract
-	headroom  time.Duration
-	tokenFunc func(ctx context.Context, key string) (string, error)
+	name             string
+	logger           LoggerContract
+	headroom         time.Duration
+	tokenFunc        func(ctx context.Context, key string) (string, error)
+	parseOptions     []jwt.Option
+	rejectUnparsable bool
 }
 
 // NewCacheMap returns a new mapped JWT cache.
@@ -31,6 +34,8 @@ func NewCacheMap(opts ...MapOption) *CacheMap {
 		tokenFunc: func(ctx context.Context, key string) (s string, e error) {
 			return "", ErrNotImplemented
 		},
+		parseOptions:     nil,
+		rejectUnparsable: false,
 	}
 
 	//apply opts
@@ -42,18 +47,22 @@ func NewCacheMap(opts ...MapOption) *CacheMap {
 		jwtMap: map[string]*Cache{},
 		lock:   &sync.RWMutex{},
 
-		name:      mapConfig.name,
-		logger:    mapConfig.logger,
-		headroom:  mapConfig.headroom,
-		tokenFunc: mapConfig.tokenFunc,
+		name:             mapConfig.name,
+		logger:           mapConfig.logger,
+		headroom:         mapConfig.headroom,
+		tokenFunc:        mapConfig.tokenFunc,
+		parseOptions:     mapConfig.parseOptions,
+		rejectUnparsable: mapConfig.rejectUnparsable,
 	}
 }
 
 type mapConfig struct {
-	name      string
-	logger    LoggerContract
-	headroom  time.Duration
-	tokenFunc func(ctx context.Context, key string) (string, error)
+	name             string
+	logger           LoggerContract
+	headroom         time.Duration
+	tokenFunc        func(ctx context.Context, key string) (string, error)
+	parseOptions     []jwt.Option
+	rejectUnparsable bool
 }
 
 // MapOption represents an option for the mapped cache.
@@ -93,6 +102,27 @@ func MapTokenFunction(tokenFunc func(ctx context.Context, key string) (string, e
 	}
 }
 
+// MapParseOptions set the parse options which are used to parse
+// a JWT. This can be used to implement signature validation for example.
+//
+// The default empty.
+func MapParseOptions(parseOptions ...jwt.Option) MapOption {
+	return func(c *mapConfig) {
+		c.parseOptions = parseOptions
+	}
+}
+
+// MapRejectUnparsable sets if the cache should reject (and return
+// the accompanying error) token which are not parsable.
+// Note, unparsable can mean a failed signature check.
+//
+// The default is false.
+func MapRejectUnparsable(rejectUnparsable bool) MapOption {
+	return func(c *mapConfig) {
+		c.rejectUnparsable = rejectUnparsable
+	}
+}
+
 // EnsureToken returns either the cached token if existing and still valid,
 // or calls the internal token function to fetch a new token. If an error
 // occurs in the latter case, it is passed trough.
@@ -115,6 +145,8 @@ func (cacheMap *CacheMap) EnsureToken(ctx context.Context, key string) (string, 
 			TokenFunction(func(ctx context.Context) (string, error) {
 				return cacheMap.tokenFunc(ctx, key)
 			}),
+			ParseOptions(cacheMap.parseOptions...),
+			RejectUnparsable(cacheMap.rejectUnparsable),
 		)
 
 		cache = cacheMap.jwtMap[key]

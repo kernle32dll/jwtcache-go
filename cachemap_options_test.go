@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
 
@@ -86,5 +87,38 @@ func Test_MapOption_TokenFunction(t *testing.T) {
 	// then
 	if token, err := options.tokenFunc(context.Background(), "some-key"); token != "some-token" || err != nil {
 		t.Errorf("token function not correctly applied, got %s ; %s", token, err)
+	}
+}
+
+// Tests that the MapParseOptions option correctly applies.
+func Test_MapOption_ParseOptions(t *testing.T) {
+	// given
+	newOption := jwt.WithIssuer("issuer")
+	option := MapParseOptions(newOption)
+	options := &mapConfig{parseOptions: []jwt.Option{
+		jwt.WithAudience("audience"),
+	}}
+
+	// when
+	option(options)
+
+	// then
+	if len(options.parseOptions) != 1 || options.parseOptions[0] != newOption {
+		t.Errorf("parse options not correctly applied, got %s", options.parseOptions)
+	}
+}
+
+// Tests that the MapRejectUnparsable option correctly applies.
+func Test_MapOption_RejectUnparsable(t *testing.T) {
+	// given
+	option := MapRejectUnparsable(true)
+	options := &mapConfig{rejectUnparsable: false}
+
+	// when
+	option(options)
+
+	// then
+	if !options.rejectUnparsable {
+		t.Errorf("reject unparsable not correctly applied, got %t", options.rejectUnparsable)
 	}
 }
