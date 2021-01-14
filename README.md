@@ -98,6 +98,7 @@ func main() {
 		}),
 		// !! HMAC is shown for simplicity - use RSA, ECDSA or EdDSA instead !!
 		jwt.ParseOptions(jwtParser.WithVerify(jwa.HS256, []byte("supersecretpassphrase"))),
+		jwt.RejectUnparsable(true) // Propagate parsing errors, instead of swallowing them
 	)
 
 	_, err := cache.EnsureToken(context.Background())
