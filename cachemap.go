@@ -20,7 +20,7 @@ type CacheMap struct {
 	logger           LoggerContract
 	headroom         time.Duration
 	tokenFunc        func(ctx context.Context, key string) (string, error)
-	parseOptions     []jwt.Option
+	parseOptions     []jwt.ParseOption
 	rejectUnparsable bool
 }
 
@@ -61,7 +61,7 @@ type mapConfig struct {
 	logger           LoggerContract
 	headroom         time.Duration
 	tokenFunc        func(ctx context.Context, key string) (string, error)
-	parseOptions     []jwt.Option
+	parseOptions     []jwt.ParseOption
 	rejectUnparsable bool
 }
 
@@ -106,7 +106,7 @@ func MapTokenFunction(tokenFunc func(ctx context.Context, key string) (string, e
 // a JWT. This can be used to implement signature validation for example.
 //
 // The default empty.
-func MapParseOptions(parseOptions ...jwt.Option) MapOption {
+func MapParseOptions(parseOptions ...jwt.ParseOption) MapOption {
 	return func(c *mapConfig) {
 		c.parseOptions = parseOptions
 	}

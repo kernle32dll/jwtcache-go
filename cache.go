@@ -32,7 +32,7 @@ type Cache struct {
 	logger           LoggerContract
 	headroom         time.Duration
 	tokenFunc        func(ctx context.Context) (string, error)
-	parseOptions     []jwt.Option
+	parseOptions     []jwt.ParseOption
 	rejectUnparsable bool
 }
 
@@ -70,7 +70,7 @@ type config struct {
 	logger           LoggerContract
 	headroom         time.Duration
 	tokenFunc        func(ctx context.Context) (string, error)
-	parseOptions     []jwt.Option
+	parseOptions     []jwt.ParseOption
 	rejectUnparsable bool
 }
 
@@ -115,7 +115,7 @@ func TokenFunction(tokenFunc func(ctx context.Context) (string, error)) Option {
 // a JWT. This can be used to implement signature validation for example.
 //
 // The default empty.
-func ParseOptions(parseOptions ...jwt.Option) Option {
+func ParseOptions(parseOptions ...jwt.ParseOption) Option {
 	return func(c *config) {
 		c.parseOptions = parseOptions
 	}

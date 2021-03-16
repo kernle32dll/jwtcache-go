@@ -95,7 +95,7 @@ func Test_Option_ParseOptions(t *testing.T) {
 	// given
 	newOption := jwt.WithIssuer("issuer")
 	option := ParseOptions(newOption)
-	options := &config{parseOptions: []jwt.Option{
+	options := &config{parseOptions: []jwt.ParseOption{
 		jwt.WithAudience("audience"),
 	}}
 
