@@ -151,4 +151,4 @@ per tenant (a good cache key might be the UUID of a tenant, for example).
 
 ## Compatibility
 
-jwt-cache-go is automatically tested against Go 1.13.X, 1.14.X and 1.15.X.
+jwt-cache-go is automatically tested against Go 1.14.X, 1.15.X and 1.16.X.
