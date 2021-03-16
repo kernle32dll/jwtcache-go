@@ -1,6 +1,6 @@
 module github.com/kernle32dll/jwtcache-go
 
-go 1.14
+go 1.15
 
 require (
 	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
