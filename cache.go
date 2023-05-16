@@ -2,7 +2,6 @@ package jwt
 
 import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
-	"github.com/sirupsen/logrus"
 
 	"context"
 	"errors"
@@ -23,13 +22,24 @@ type LoggerContract interface {
 	Debugf(format string, args ...interface{})
 }
 
+// NoopLogger is a No-Op implementation of the LoggerContract.
+type NoopLogger struct{}
+
+func (n NoopLogger) Infof(string, ...interface{}) {
+	// Intentional No-Op
+}
+
+func (n NoopLogger) Debugf(string, ...interface{}) {
+	// Intentional No-Op
+}
+
 // Cache is a simple caching implementation to reuse JWTs till they expire.
 type Cache struct {
 	jwt      string
 	validity time.Time
 
 	name             string
-	logger           LoggerContract
+	loggerFunc       func(ctx context.Context) (LoggerContract, error)
 	headroom         time.Duration
 	tokenFunc        func(ctx context.Context) (string, error)
 	parseOptions     []jwt.ParseOption
@@ -40,7 +50,7 @@ type Cache struct {
 func NewCacheFromConfig(config *Config) *Cache {
 	return &Cache{
 		name:             config.Name,
-		logger:           config.Logger,
+		loggerFunc:       config.LoggerFunc,
 		headroom:         config.Headroom,
 		tokenFunc:        config.TokenFunc,
 		parseOptions:     config.ParseOptions,
@@ -54,7 +64,9 @@ func NewCache(opts ...Option) *Cache {
 	config := &Config{
 		Name:     "",
 		Headroom: time.Second,
-		Logger:   logrus.StandardLogger(),
+		LoggerFunc: func(context.Context) (LoggerContract, error) {
+			return &NoopLogger{}, nil
+		},
 		TokenFunc: func(ctx context.Context) (s string, e error) {
 			return "", ErrNotImplemented
 		},
@@ -74,6 +86,11 @@ func NewCache(opts ...Option) *Cache {
 // or calls the internal token function to fetch a new token. If an error
 // occurs in the latter case, it is passed trough.
 func (jwtCache *Cache) EnsureToken(ctx context.Context) (string, error) {
+	logger, err := jwtCache.loggerFunc(ctx)
+	if err != nil {
+		return "", err
+	}
+
 	// Do we have a cached jwt, and its still valid?
 	if jwtCache.jwt != "" && time.Now().Before(jwtCache.validity) {
 		return jwtCache.jwt, nil
@@ -98,20 +115,20 @@ func (jwtCache *Cache) EnsureToken(ctx context.Context) (string, error) {
 
 		if exp.IsZero() {
 			jwtCache.jwt = ""
-			jwtCache.logger.Infof("New %s received. Not 'exp' header set, so not caching", jwtCache.name)
+			logger.Infof("New %s received. Not 'exp' header set, so not caching", jwtCache.name)
 		} else {
 			// Cache the new token (and leave some headroom)
 			jwtCache.jwt = token
 			jwtCache.validity = exp.Add(-jwtCache.headroom)
 
 			if !iat.IsZero() {
-				jwtCache.logger.Debugf(
+				logger.Debugf(
 					"New %s received. Caching for %s",
 					jwtCache.name,
 					jwtCache.validity.Sub(iat.Add(-jwtCache.headroom)),
 				)
 			} else {
-				jwtCache.logger.Debugf(
+				logger.Debugf(
 					"New %s received. Caching till %s",
 					jwtCache.name,
 					jwtCache.validity.Add(-jwtCache.headroom),
@@ -119,7 +136,7 @@ func (jwtCache *Cache) EnsureToken(ctx context.Context) (string, error) {
 			}
 		}
 	} else {
-		jwtCache.logger.Debugf("Error while parsing %s: %s", jwtCache.name, err)
+		logger.Debugf("Error while parsing %s: %s", jwtCache.name, err)
 	}
 
 	return token, nil

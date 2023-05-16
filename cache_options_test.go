@@ -1,12 +1,14 @@
 package jwt_test
 
 import (
+	"bytes"
+	"context"
 	jwt "github.com/kernle32dll/jwtcache-go"
+	jwtZerolog "github.com/kernle32dll/jwtcache-go/zerolog"
 	jwtx "github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/rs/zerolog"
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
-
-	"context"
 	"testing"
 	"time"
 )
@@ -26,20 +28,27 @@ func Test_Option_Name(t *testing.T) {
 	}
 }
 
-// Tests that the Logger option correctly applies.
-func Test_Option_Logger(t *testing.T) {
+// Tests that the Logger option correctly applies with a Logrus logger.
+func Test_Option_Logger_Logrus(t *testing.T) {
 	// given
 	oldLogger, oldLoggerHook := test.NewNullLogger()
 	newLogger, newLoggerHook := test.NewNullLogger()
 	newLogger.Level = logrus.DebugLevel
 
 	option := jwt.Logger(newLogger)
-	options := &jwt.Config{Logger: oldLogger}
+	options := &jwt.Config{LoggerFunc: func(ctx context.Context) (jwt.LoggerContract, error) {
+		return oldLogger, nil
+	}}
 
 	// when
 	option(options)
-	options.Logger.Infof("foo %s", "bar")
-	options.Logger.Debugf("kaese %s", "broed")
+	logger, err := options.LoggerFunc(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	logger.Infof("foo %s", "bar")
+	logger.Debugf("kaese %s", "broed")
 
 	// then
 	if lastEntry := newLoggerHook.Entries[0]; lastEntry.Message != "foo bar" || lastEntry.Level != logrus.InfoLevel {
@@ -54,6 +63,50 @@ func Test_Option_Logger(t *testing.T) {
 	if len(oldLoggerHook.AllEntries()) > 0 {
 		t.Errorf("logger not correctly applied, old logger was used at least once")
 	}
+}
+
+// Tests that the Logger option correctly applies with a zerolog logger.
+func Test_Option_Logger_Zerolog(t *testing.T) {
+	// given
+	oldLoggerBuffer := &bytes.Buffer{}
+	oldLogger := logrus.New()
+	oldLogger.SetOutput(oldLoggerBuffer)
+
+	newLoggerBuffer := &bytes.Buffer{}
+	newLogger := zerolog.New(zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
+		w.Out = newLoggerBuffer
+		w.NoColor = true
+		w.FormatTimestamp = func(i interface{}) string {
+			return "test"
+		}
+	}))
+	newLogger.Level(zerolog.DebugLevel)
+
+	option := jwt.Logger(jwtZerolog.LoggerBridge{Logger: newLogger})
+	options := &jwt.Config{LoggerFunc: func(ctx context.Context) (jwt.LoggerContract, error) {
+		return oldLogger, nil
+	}}
+
+	// when
+	option(options)
+	logger, err := options.LoggerFunc(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	logger.Infof("foo %s", "bar")
+	logger.Debugf("kaese %s", "broed")
+
+	// then
+	expected := "test INF foo bar\ntest DBG kaese broed\n"
+	if newLoggerOutput := newLoggerBuffer.String(); newLoggerOutput != expected {
+		t.Errorf("logger not correctly applied. Expected %q got %q", expected, newLoggerOutput)
+	}
+
+	//// ensure old logger sees no usage
+	//if len(oldLoggerHook.AllEntries()) > 0 {
+	//	t.Errorf("logger not correctly applied, old logger was used at least once")
+	//}
 }
 
 // Tests that the Headroom option correctly applies.

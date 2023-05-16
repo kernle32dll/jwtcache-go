@@ -2,7 +2,6 @@ package jwt
 
 import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
-	"github.com/sirupsen/logrus"
 
 	"context"
 	"sync"
@@ -17,7 +16,7 @@ type CacheMap struct {
 	lock   *sync.RWMutex
 
 	name             string
-	logger           LoggerContract
+	loggerFunc       func(ctx context.Context, key string) (LoggerContract, error)
 	headroom         time.Duration
 	tokenFunc        func(ctx context.Context, key string) (string, error)
 	parseOptions     []jwt.ParseOption
@@ -31,7 +30,7 @@ func NewCacheMapFromConfig(mapConfig *MapConfig) *CacheMap {
 		lock:   &sync.RWMutex{},
 
 		name:             mapConfig.Name,
-		logger:           mapConfig.Logger,
+		loggerFunc:       mapConfig.LoggerFunc,
 		headroom:         mapConfig.Headroom,
 		tokenFunc:        mapConfig.TokenFunc,
 		parseOptions:     mapConfig.ParseOptions,
@@ -45,7 +44,9 @@ func NewCacheMap(opts ...MapOption) *CacheMap {
 	mapConfig := &MapConfig{
 		Name:     "",
 		Headroom: time.Second,
-		Logger:   logrus.StandardLogger(),
+		LoggerFunc: func(ctx context.Context, key string) (LoggerContract, error) {
+			return &NoopLogger{}, nil
+		},
 		TokenFunc: func(ctx context.Context, key string) (s string, e error) {
 			return "", ErrNotImplemented
 		},
@@ -79,7 +80,9 @@ func (cacheMap *CacheMap) EnsureToken(ctx context.Context, key string) (string, 
 		cacheMap.jwtMap[key] = NewCache(
 			Name(cacheMap.name+" for "+key),
 			Headroom(cacheMap.headroom),
-			Logger(cacheMap.logger),
+			LoggerFunction(func(ctx context.Context) (LoggerContract, error) {
+				return cacheMap.loggerFunc(ctx, key)
+			}),
 			TokenFunction(func(ctx context.Context) (string, error) {
 				return cacheMap.tokenFunc(ctx, key)
 			}),

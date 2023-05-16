@@ -10,8 +10,8 @@ import (
 // properties for a Cache.
 type Config struct {
 	Name             string
-	Logger           LoggerContract
 	Headroom         time.Duration
+	LoggerFunc       func(ctx context.Context) (LoggerContract, error)
 	TokenFunc        func(ctx context.Context) (string, error)
 	ParseOptions     []jwt.ParseOption
 	RejectUnparsable bool
@@ -28,12 +28,21 @@ func Name(name string) Option {
 	}
 }
 
-// Logger sets the logger to be used.
-// The default is the logrus default logger.
-func Logger(logger LoggerContract) Option {
+// LoggerFunction set the function which is called to retrieve
+// a logger to be used.
+// The default is a noop logger.
+func LoggerFunction(loggerFunc func(ctx context.Context) (LoggerContract, error)) Option {
 	return func(c *Config) {
-		c.Logger = logger
+		c.LoggerFunc = loggerFunc
 	}
+}
+
+// Logger sets the logger to be used.
+// The default is a noop logger.
+func Logger(logger LoggerContract) Option {
+	return LoggerFunction(func(context.Context) (LoggerContract, error) {
+		return logger, nil
+	})
 }
 
 // Headroom sets the headroom on how much earlier the cached

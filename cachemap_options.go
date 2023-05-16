@@ -10,7 +10,7 @@ import (
 // properties for a CacheMap.
 type MapConfig struct {
 	Name             string
-	Logger           LoggerContract
+	LoggerFunc       func(ctx context.Context, key string) (LoggerContract, error)
 	Headroom         time.Duration
 	TokenFunc        func(ctx context.Context, key string) (string, error)
 	ParseOptions     []jwt.ParseOption
@@ -28,12 +28,21 @@ func MapName(name string) MapOption {
 	}
 }
 
-// MapLogger sets the logger to be used.
-// The default is the logrus default logger.
-func MapLogger(logger LoggerContract) MapOption {
+// MapLoggerFunction set the function which is called to retrieve
+// a logger to be used.
+// The default is a noop logger.
+func MapLoggerFunction(loggerFunc func(ctx context.Context, key string) (LoggerContract, error)) MapOption {
 	return func(c *MapConfig) {
-		c.Logger = logger
+		c.LoggerFunc = loggerFunc
 	}
+}
+
+// MapLogger sets the logger to be used.
+// The default is a noop logger.
+func MapLogger(logger LoggerContract) MapOption {
+	return MapLoggerFunction(func(context.Context, string) (LoggerContract, error) {
+		return logger, nil
+	})
 }
 
 // MapHeadroom sets the headroom on how much earlier the cached

@@ -34,12 +34,19 @@ func Test_MapOption_Logger(t *testing.T) {
 	newLogger.Level = logrus.DebugLevel
 
 	option := jwt.MapLogger(newLogger)
-	options := &jwt.MapConfig{Logger: oldLogger}
+	options := &jwt.MapConfig{LoggerFunc: func(ctx context.Context, key string) (jwt.LoggerContract, error) {
+		return oldLogger, nil
+	}}
 
 	// when
 	option(options)
-	options.Logger.Infof("foo %s", "bar")
-	options.Logger.Debugf("kaese %s", "broed")
+	logger, err := options.LoggerFunc(context.Background(), "some-map")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	logger.Infof("foo %s", "bar")
+	logger.Debugf("kaese %s", "broed")
 
 	// then
 	if lastEntry := newLoggerHook.Entries[0]; lastEntry.Message != "foo bar" || lastEntry.Level != logrus.InfoLevel {

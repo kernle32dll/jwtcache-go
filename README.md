@@ -108,6 +108,50 @@ func main() {
 }
 ```
 
+## Logging
+
+This lib contains a simple logging Abstraction via the `jwt.LoggerContract`. Per default, a no-op
+implementation is used, and no logs are output.
+
+There are two known-supported loggers: [Logrus](https://github.com/sirupsen/logrus),
+and [zerolog](https://github.com/rs/zerolog).
+
+Look at the following example how to use either:
+
+```go
+package main
+
+import (
+	"github.com/kernle32dll/jwtcache-go"
+	jwtZerolog "github.com/kernle32dll/jwtcache-go/zerolog"
+	"github.com/rs/zerolog"
+	"github.com/sirupsen/logrus"
+
+	"context"
+	"log"
+)
+
+func main() {
+	cache := jwt.NewCache(
+		jwt.Name("my cache"),
+
+		// For using logrus...
+		jwt.Logger(logrus.New()),
+
+		// For using zerolog...
+		jwt.Logger(jwtZerolog.LoggerBridge{Logger: zerolog.Nop()}),
+	)
+
+	token, err := cache.EnsureToken(context.Background())
+	if err != nil {
+		// oh no...
+	}
+
+	log.Printf("got token: %s", token)
+}
+
+```
+
 ## Advanced usage
 
 In addition to the `jwt.Cache`, this lib has an additional trick up its sleeve in the form of `jwt.CacheMap`.
