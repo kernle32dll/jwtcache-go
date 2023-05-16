@@ -2,8 +2,8 @@ package jwt_test
 
 import (
 	jwt "github.com/kernle32dll/jwtcache-go"
-	"github.com/lestrrat-go/jwx/jwa"
-	jwtx "github.com/lestrrat-go/jwx/jwt"
+	"github.com/lestrrat-go/jwx/v2/jwa"
+	jwtx "github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/sirupsen/logrus"
 
 	"context"
@@ -66,6 +66,7 @@ func Test_CacheMap_EnsureToken_TokenError(t *testing.T) {
 	// given
 	expectedErr := errors.New("expected error")
 	cache := jwt.NewCacheMap(
+		jwt.MapName(t.Name()),
 		jwt.MapLogger(logger),
 		jwt.MapTokenFunction(func(ctx context.Context, key string) (s string, e error) {
 			return "", expectedErr
@@ -94,8 +95,10 @@ func Test_CacheMap_EnsureToken_Cache(t *testing.T) {
 
 	// given
 	cache := jwt.NewCacheMap(
+		jwt.MapName(t.Name()),
 		jwt.MapLogger(logger),
 		jwt.MapTokenFunction(getMapTokenFunction()),
+		jwt.MapParseOptions(jwtx.WithVerify(false)),
 	)
 
 	// when
@@ -142,6 +145,7 @@ func Test_CacheMap_EnsureToken_Cache_Invalidation(t *testing.T) {
 
 	// given
 	cache := jwt.NewCacheMap(
+		jwt.MapName(t.Name()),
 		jwt.MapLogger(logger),
 		jwt.MapTokenFunction(getMapExpiredTokenFunction()),
 	)
@@ -172,6 +176,7 @@ func Test_CacheMap_EnsureToken_NoExp(t *testing.T) {
 
 	// given
 	cache := jwt.NewCacheMap(
+		jwt.MapName(t.Name()),
 		jwt.MapLogger(logger),
 		jwt.MapTokenFunction(getMapTokenFunctionWithoutExp()),
 	)
@@ -202,8 +207,10 @@ func Test_CacheMap_EnsureToken_NoIat(t *testing.T) {
 
 	// given
 	cache := jwt.NewCacheMap(
+		jwt.MapName(t.Name()),
 		jwt.MapLogger(logger),
 		jwt.MapTokenFunction(getMapTokenFunctionWithoutIat()),
+		jwt.MapParseOptions(jwtx.WithVerify(false)),
 	)
 
 	// when
@@ -233,6 +240,7 @@ func Test_CacheMap_EnsureToken_BrokenParser(t *testing.T) {
 	// given
 	counter := 0
 	cache := jwt.NewCacheMap(
+		jwt.MapName(t.Name()),
 		jwt.MapLogger(logger),
 		jwt.MapTokenFunction(func(ctx context.Context, key string) (s string, e error) {
 			counter++
@@ -267,6 +275,7 @@ func Test_CacheMap_EnsureToken_BrokenParser_Reject(t *testing.T) {
 	// given
 	counter := 0
 	cache := jwt.NewCacheMap(
+		jwt.MapName(t.Name()),
 		jwt.MapLogger(logger),
 		jwt.MapTokenFunction(func(ctx context.Context, key string) (s string, e error) {
 			counter++
@@ -302,16 +311,17 @@ func Test_MapCache_EnsureToken_Signed_JWT(t *testing.T) {
 
 	// given
 	cache := jwt.NewCacheMap(
+		jwt.MapName(t.Name()),
 		jwt.MapLogger(logger),
 		jwt.MapTokenFunction(func(ctx context.Context, key string) (s string, e error) {
-			signedToken, err := jwtx.Sign(jwtx.New(), jwa.ES512, ecdsaPrivateKey)
+			signedToken, err := jwtx.Sign(jwtx.New(), jwtx.WithKey(jwa.ES512, ecdsaPrivateKey))
 			if err != nil {
 				return "", err
 			}
 
 			return string(signedToken), nil
 		}),
-		jwt.MapParseOptions(jwtx.WithVerify(jwa.ES512, ecdsaPublicKey)),
+		jwt.MapParseOptions(jwtx.WithKey(jwa.ES512, ecdsaPublicKey)),
 		// Set, so that verification fails if we provide a wrong JWT in the
 		jwt.MapRejectUnparsable(true),
 	)

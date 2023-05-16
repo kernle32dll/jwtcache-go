@@ -2,7 +2,7 @@ package jwt
 
 import (
 	"context"
-	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/lestrrat-go/jwx/v2/jwt"
 	"time"
 )
 

@@ -2,8 +2,8 @@ package jwt_test
 
 import (
 	jwt "github.com/kernle32dll/jwtcache-go"
-	"github.com/lestrrat-go/jwx/jwa"
-	jwtx "github.com/lestrrat-go/jwx/jwt"
+	"github.com/lestrrat-go/jwx/v2/jwa"
+	jwtx "github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/sirupsen/logrus"
 
 	"context"
@@ -37,7 +37,7 @@ func getJwt(claims map[string]interface{}) (string, error) {
 		}
 	}
 
-	signedT, err := jwtx.Sign(token, jwa.HS512, []byte("supersecretpassphrase"))
+	signedT, err := jwtx.Sign(token, jwtx.WithKey(jwa.HS512, []byte("supersecretpassphrase")))
 	if err != nil {
 		return "", err
 	}
@@ -94,6 +94,7 @@ func Test_Cache_EnsureToken_TokenError(t *testing.T) {
 	// given
 	expectedErr := errors.New("expected error")
 	cache := jwt.NewCache(
+		jwt.Name(t.Name()),
 		jwt.Logger(logger),
 		jwt.TokenFunction(func(ctx context.Context) (s string, e error) {
 			return "", expectedErr
@@ -121,8 +122,10 @@ func Test_Cache_EnsureToken_Cache(t *testing.T) {
 
 	// given
 	cache := jwt.NewCache(
+		jwt.Name(t.Name()),
 		jwt.Logger(logger),
 		jwt.TokenFunction(getTokenFunction()),
+		jwt.ParseOptions(jwtx.WithVerify(false)),
 	)
 
 	// when
@@ -151,6 +154,7 @@ func Test_Cache_EnsureToken_Cache_Invalidation(t *testing.T) {
 
 	// given
 	cache := jwt.NewCache(
+		jwt.Name(t.Name()),
 		jwt.Logger(logger),
 		jwt.TokenFunction(getExpiredTokenFunction()),
 	)
@@ -181,6 +185,7 @@ func Test_Cache_EnsureToken_NoExp(t *testing.T) {
 
 	// given
 	cache := jwt.NewCache(
+		jwt.Name(t.Name()),
 		jwt.Logger(logger),
 		jwt.TokenFunction(getTokenFunctionWithoutExp()),
 	)
@@ -211,8 +216,10 @@ func Test_Cache_EnsureToken_NoIat(t *testing.T) {
 
 	// given
 	cache := jwt.NewCache(
+		jwt.Name(t.Name()),
 		jwt.Logger(logger),
 		jwt.TokenFunction(getTokenFunctionWithoutIat()),
+		jwt.ParseOptions(jwtx.WithVerify(false)),
 	)
 
 	// when
@@ -242,6 +249,7 @@ func Test_Cache_EnsureToken_BrokenParser(t *testing.T) {
 	// given
 	counter := 0
 	cache := jwt.NewCache(
+		jwt.Name(t.Name()),
 		jwt.Logger(logger),
 		jwt.TokenFunction(func(ctx context.Context) (s string, e error) {
 			counter++
@@ -276,6 +284,7 @@ func Test_Cache_EnsureToken_BrokenParser_Reject(t *testing.T) {
 	// given
 	counter := 0
 	cache := jwt.NewCache(
+		jwt.Name(t.Name()),
 		jwt.Logger(logger),
 		jwt.TokenFunction(func(ctx context.Context) (s string, e error) {
 			counter++
@@ -311,16 +320,17 @@ func Test_Cache_EnsureToken_Signed_JWT(t *testing.T) {
 
 	// given
 	cache := jwt.NewCache(
+		jwt.Name(t.Name()),
 		jwt.Logger(logger),
 		jwt.TokenFunction(func(ctx context.Context) (s string, e error) {
-			signedToken, err := jwtx.Sign(jwtx.New(), jwa.ES512, ecdsaPrivateKey)
+			signedToken, err := jwtx.Sign(jwtx.New(), jwtx.WithKey(jwa.ES512, ecdsaPrivateKey))
 			if err != nil {
 				return "", err
 			}
 
 			return string(signedToken), nil
 		}),
-		jwt.ParseOptions(jwtx.WithVerify(jwa.ES512, ecdsaPublicKey)),
+		jwt.ParseOptions(jwtx.WithKey(jwa.ES512, ecdsaPublicKey)),
 		// Set, so that verification fails if we provide a wrong JWT in the
 		jwt.RejectUnparsable(true),
 	)

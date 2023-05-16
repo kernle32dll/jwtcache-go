@@ -82,8 +82,8 @@ package main
 
 import (
 	"github.com/kernle32dll/jwtcache-go"
-	"github.com/lestrrat-go/jwx/jwa"
-	jwtParser "github.com/lestrrat-go/jwx/jwt"
+	"github.com/lestrrat-go/jwx/v2/jwa"
+	jwtParser "github.com/lestrrat-go/jwx/v2/jwt"
 
 	"context"
 )
@@ -97,8 +97,8 @@ func main() {
 			return "someToken", nil
 		}),
 		// !! HMAC is shown for simplicity - use RSA, ECDSA or EdDSA instead !!
-		jwt.ParseOptions(jwtParser.WithVerify(jwa.HS256, []byte("supersecretpassphrase"))),
-		jwt.RejectUnparsable(true) // Propagate parsing errors, instead of swallowing them
+		jwt.ParseOptions(jwtParser.WithKey(jwa.HS256, []byte("supersecretpassphrase"))),
+		jwt.RejectUnparsable(true), // Propagate parsing errors, instead of swallowing them
 	)
 
 	_, err := cache.EnsureToken(context.Background())
@@ -120,7 +120,6 @@ package main
 
 import (
 	"github.com/kernle32dll/jwtcache-go"
-	"github.com/lestrrat-go/jwx/jwa"
 
 	"context"
 	"log"

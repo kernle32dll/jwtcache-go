@@ -1,7 +1,7 @@
 package jwt
 
 import (
-	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/sirupsen/logrus"
 
 	"context"

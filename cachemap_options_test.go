@@ -2,7 +2,7 @@ package jwt_test
 
 import (
 	jwt "github.com/kernle32dll/jwtcache-go"
-	jwtx "github.com/lestrrat-go/jwx/jwt"
+	jwtx "github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
 
