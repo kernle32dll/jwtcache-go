@@ -36,6 +36,18 @@ type Cache struct {
 	rejectUnparsable bool
 }
 
+// NewCacheFromConfig returns a new JWT cache.
+func NewCacheFromConfig(config *Config) *Cache {
+	return &Cache{
+		name:             config.Name,
+		logger:           config.Logger,
+		headroom:         config.Headroom,
+		tokenFunc:        config.TokenFunc,
+		parseOptions:     config.ParseOptions,
+		rejectUnparsable: config.RejectUnparsable,
+	}
+}
+
 // NewCache returns a new JWT cache.
 func NewCache(opts ...Option) *Cache {
 	//default
@@ -55,14 +67,7 @@ func NewCache(opts ...Option) *Cache {
 		opt(config)
 	}
 
-	return &Cache{
-		name:             config.Name,
-		logger:           config.Logger,
-		headroom:         config.Headroom,
-		tokenFunc:        config.TokenFunc,
-		parseOptions:     config.ParseOptions,
-		rejectUnparsable: config.RejectUnparsable,
-	}
+	return NewCacheFromConfig(config)
 }
 
 // EnsureToken returns either the cached token if existing and still valid,

@@ -24,6 +24,21 @@ type CacheMap struct {
 	rejectUnparsable bool
 }
 
+// NewCacheMapFromConfig returns a new mapped JWT cache.
+func NewCacheMapFromConfig(mapConfig *MapConfig) *CacheMap {
+	return &CacheMap{
+		jwtMap: map[string]*Cache{},
+		lock:   &sync.RWMutex{},
+
+		name:             mapConfig.Name,
+		logger:           mapConfig.Logger,
+		headroom:         mapConfig.Headroom,
+		tokenFunc:        mapConfig.TokenFunc,
+		parseOptions:     mapConfig.ParseOptions,
+		rejectUnparsable: mapConfig.RejectUnparsable,
+	}
+}
+
 // NewCacheMap returns a new mapped JWT cache.
 func NewCacheMap(opts ...MapOption) *CacheMap {
 	//default
@@ -43,17 +58,7 @@ func NewCacheMap(opts ...MapOption) *CacheMap {
 		opt(mapConfig)
 	}
 
-	return &CacheMap{
-		jwtMap: map[string]*Cache{},
-		lock:   &sync.RWMutex{},
-
-		name:             mapConfig.Name,
-		logger:           mapConfig.Logger,
-		headroom:         mapConfig.Headroom,
-		tokenFunc:        mapConfig.TokenFunc,
-		parseOptions:     mapConfig.ParseOptions,
-		rejectUnparsable: mapConfig.RejectUnparsable,
-	}
+	return NewCacheMapFromConfig(mapConfig)
 }
 
 // EnsureToken returns either the cached token if existing and still valid,
