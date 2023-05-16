@@ -39,15 +39,15 @@ type Cache struct {
 // NewCache returns a new JWT cache.
 func NewCache(opts ...Option) *Cache {
 	//default
-	config := &config{
-		name:     "",
-		headroom: time.Second,
-		logger:   logrus.StandardLogger(),
-		tokenFunc: func(ctx context.Context) (s string, e error) {
+	config := &Config{
+		Name:     "",
+		Headroom: time.Second,
+		Logger:   logrus.StandardLogger(),
+		TokenFunc: func(ctx context.Context) (s string, e error) {
 			return "", ErrNotImplemented
 		},
-		parseOptions:     nil,
-		rejectUnparsable: false,
+		ParseOptions:     nil,
+		RejectUnparsable: false,
 	}
 
 	//apply opts
@@ -56,79 +56,12 @@ func NewCache(opts ...Option) *Cache {
 	}
 
 	return &Cache{
-		name:             config.name,
-		logger:           config.logger,
-		headroom:         config.headroom,
-		tokenFunc:        config.tokenFunc,
-		parseOptions:     config.parseOptions,
-		rejectUnparsable: config.rejectUnparsable,
-	}
-}
-
-type config struct {
-	name             string
-	logger           LoggerContract
-	headroom         time.Duration
-	tokenFunc        func(ctx context.Context) (string, error)
-	parseOptions     []jwt.ParseOption
-	rejectUnparsable bool
-}
-
-// Option represents an option for the cache.
-type Option func(*config)
-
-// Name sets the name of the cache.
-// The default is an empty string.
-func Name(name string) Option {
-	return func(c *config) {
-		c.name = name
-	}
-}
-
-// Logger sets the logger to be used.
-// The default is the logrus default logger.
-func Logger(logger LoggerContract) Option {
-	return func(c *config) {
-		c.logger = logger
-	}
-}
-
-// Headroom sets the headroom on how much earlier the cached
-// token should be considered expired.
-// The default is 1 second.
-func Headroom(headroom time.Duration) Option {
-	return func(c *config) {
-		c.headroom = headroom
-	}
-}
-
-// TokenFunction set the function which is called to retrieve a new
-// JWT when required.
-// The default always returns an error with "not implemented".
-func TokenFunction(tokenFunc func(ctx context.Context) (string, error)) Option {
-	return func(c *config) {
-		c.tokenFunc = tokenFunc
-	}
-}
-
-// ParseOptions set the parse options which are used to parse
-// a JWT. This can be used to implement signature validation for example.
-//
-// The default empty.
-func ParseOptions(parseOptions ...jwt.ParseOption) Option {
-	return func(c *config) {
-		c.parseOptions = parseOptions
-	}
-}
-
-// RejectUnparsable sets if the cache should reject (and return
-// the accompanying error) token which are not parsable.
-// Note, unparsable can mean a failed signature check.
-//
-// The default is false.
-func RejectUnparsable(rejectUnparsable bool) Option {
-	return func(c *config) {
-		c.rejectUnparsable = rejectUnparsable
+		name:             config.Name,
+		logger:           config.Logger,
+		headroom:         config.Headroom,
+		tokenFunc:        config.TokenFunc,
+		parseOptions:     config.ParseOptions,
+		rejectUnparsable: config.RejectUnparsable,
 	}
 }
 

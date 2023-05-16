@@ -1,7 +1,8 @@
-package jwt
+package jwt_test
 
 import (
-	"github.com/lestrrat-go/jwx/jwt"
+	jwt "github.com/kernle32dll/jwtcache-go"
+	jwtx "github.com/lestrrat-go/jwx/jwt"
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
 
@@ -13,15 +14,15 @@ import (
 // Tests that the MapName option correctly applies.
 func Test_MapOption_Name(t *testing.T) {
 	// given
-	option := MapName("bar")
-	options := &mapConfig{name: "foo"}
+	option := jwt.MapName("bar")
+	options := &jwt.MapConfig{Name: "foo"}
 
 	// when
 	option(options)
 
 	// then
-	if options.name != "bar" {
-		t.Errorf("name not correctly applied, got %s", options.name)
+	if options.Name != "bar" {
+		t.Errorf("name not correctly applied, got %s", options.Name)
 	}
 }
 
@@ -32,13 +33,13 @@ func Test_MapOption_Logger(t *testing.T) {
 	newLogger, newLoggerHook := test.NewNullLogger()
 	newLogger.Level = logrus.DebugLevel
 
-	option := MapLogger(newLogger)
-	options := &mapConfig{logger: oldLogger}
+	option := jwt.MapLogger(newLogger)
+	options := &jwt.MapConfig{Logger: oldLogger}
 
 	// when
 	option(options)
-	options.logger.Infof("foo %s", "bar")
-	options.logger.Debugf("kaese %s", "broed")
+	options.Logger.Infof("foo %s", "bar")
+	options.Logger.Debugf("kaese %s", "broed")
 
 	// then
 	if lastEntry := newLoggerHook.Entries[0]; lastEntry.Message != "foo bar" || lastEntry.Level != logrus.InfoLevel {
@@ -58,34 +59,34 @@ func Test_MapOption_Logger(t *testing.T) {
 // Tests that the MapHeadroom option correctly applies.
 func Test_MapOption_Headroom(t *testing.T) {
 	// given
-	option := MapHeadroom(time.Second)
-	options := &mapConfig{headroom: time.Hour}
+	option := jwt.MapHeadroom(time.Second)
+	options := &jwt.MapConfig{Headroom: time.Hour}
 
 	// when
 	option(options)
 
 	// then
-	if options.headroom != time.Second {
-		t.Errorf("headroom not correctly applied, got %s", options.headroom)
+	if options.Headroom != time.Second {
+		t.Errorf("headroom not correctly applied, got %s", options.Headroom)
 	}
 }
 
 // Tests that the MapTokenFunction option correctly applies.
 func Test_MapOption_TokenFunction(t *testing.T) {
 	// given
-	option := MapTokenFunction(func(ctx context.Context, key string) (s string, e error) {
+	option := jwt.MapTokenFunction(func(ctx context.Context, key string) (s string, e error) {
 		return "some-token", nil
 	})
 
-	options := &mapConfig{tokenFunc: func(ctx context.Context, key string) (s string, e error) {
-		return "", ErrNotImplemented
+	options := &jwt.MapConfig{TokenFunc: func(ctx context.Context, key string) (s string, e error) {
+		return "", jwt.ErrNotImplemented
 	}}
 
 	// when
 	option(options)
 
 	// then
-	if token, err := options.tokenFunc(context.Background(), "some-key"); token != "some-token" || err != nil {
+	if token, err := options.TokenFunc(context.Background(), "some-key"); token != "some-token" || err != nil {
 		t.Errorf("token function not correctly applied, got %s ; %s", token, err)
 	}
 }
@@ -93,32 +94,32 @@ func Test_MapOption_TokenFunction(t *testing.T) {
 // Tests that the MapParseOptions option correctly applies.
 func Test_MapOption_ParseOptions(t *testing.T) {
 	// given
-	newOption := jwt.WithIssuer("issuer")
-	option := MapParseOptions(newOption)
-	options := &mapConfig{parseOptions: []jwt.ParseOption{
-		jwt.WithAudience("audience"),
+	newOption := jwtx.WithIssuer("issuer")
+	option := jwt.MapParseOptions(newOption)
+	options := &jwt.MapConfig{ParseOptions: []jwtx.ParseOption{
+		jwtx.WithAudience("audience"),
 	}}
 
 	// when
 	option(options)
 
 	// then
-	if len(options.parseOptions) != 1 || options.parseOptions[0] != newOption {
-		t.Errorf("parse options not correctly applied, got %s", options.parseOptions)
+	if len(options.ParseOptions) != 1 || options.ParseOptions[0] != newOption {
+		t.Errorf("parse options not correctly applied, got %s", options.ParseOptions)
 	}
 }
 
 // Tests that the MapRejectUnparsable option correctly applies.
 func Test_MapOption_RejectUnparsable(t *testing.T) {
 	// given
-	option := MapRejectUnparsable(true)
-	options := &mapConfig{rejectUnparsable: false}
+	option := jwt.MapRejectUnparsable(true)
+	options := &jwt.MapConfig{RejectUnparsable: false}
 
 	// when
 	option(options)
 
 	// then
-	if !options.rejectUnparsable {
-		t.Errorf("reject unparsable not correctly applied, got %t", options.rejectUnparsable)
+	if !options.RejectUnparsable {
+		t.Errorf("reject unparsable not correctly applied, got %t", options.RejectUnparsable)
 	}
 }

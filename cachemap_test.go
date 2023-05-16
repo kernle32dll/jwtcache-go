@@ -1,8 +1,9 @@
-package jwt
+package jwt_test
 
 import (
+	jwt "github.com/kernle32dll/jwtcache-go"
 	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwt"
+	jwtx "github.com/lestrrat-go/jwx/jwt"
 	"github.com/sirupsen/logrus"
 
 	"context"
@@ -23,8 +24,8 @@ func getMapTokenFunction() func(ctx context.Context, key string) (string, error)
 
 	return func(ctx context.Context, key string) (string, error) {
 		return getJwt(map[string]interface{}{
-			jwt.IssuedAtKey:   iat.UTC(),
-			jwt.ExpirationKey: exp.UTC(),
+			jwtx.IssuedAtKey:   iat.UTC(),
+			jwtx.ExpirationKey: exp.UTC(),
 		})
 	}
 }
@@ -32,7 +33,7 @@ func getMapTokenFunction() func(ctx context.Context, key string) (string, error)
 func getMapTokenFunctionWithoutIat() func(ctx context.Context, key string) (string, error) {
 	return func(ctx context.Context, key string) (string, error) {
 		return getJwt(map[string]interface{}{
-			jwt.ExpirationKey: time.Now().Add(time.Hour).UTC(),
+			jwtx.ExpirationKey: time.Now().Add(time.Hour).UTC(),
 		})
 	}
 }
@@ -42,8 +43,8 @@ func getMapExpiredTokenFunction() func(ctx context.Context, key string) (string,
 
 	return func(ctx context.Context, key string) (string, error) {
 		return getJwt(map[string]interface{}{
-			jwt.IssuedAtKey:   now.Add(-time.Hour).UTC(),
-			jwt.ExpirationKey: now.Add(-time.Hour).UTC(),
+			jwtx.IssuedAtKey:   now.Add(-time.Hour).UTC(),
+			jwtx.ExpirationKey: now.Add(-time.Hour).UTC(),
 		})
 	}
 }
@@ -51,39 +52,8 @@ func getMapExpiredTokenFunction() func(ctx context.Context, key string) (string,
 func getMapTokenFunctionWithoutExp() func(ctx context.Context, key string) (string, error) {
 	return func(ctx context.Context, key string) (string, error) {
 		return getJwt(map[string]interface{}{
-			jwt.IssuedAtKey: time.Now().Add(-time.Hour).UTC(),
+			jwtx.IssuedAtKey: time.Now().Add(-time.Hour).UTC(),
 		})
-	}
-}
-
-// Tests that a new cache uses the correct defaults
-func Test_CacheMap_Defaults(t *testing.T) {
-	// when
-	cache := NewCacheMap()
-
-	// then
-	if cache.name != "" {
-		t.Error("default name not correctly applied")
-	}
-
-	if cache.logger != logrus.StandardLogger() {
-		t.Error("default logger not correctly applied")
-	}
-
-	if cache.headroom != time.Second {
-		t.Error("default headroom not correctly applied")
-	}
-
-	if _, err := cache.tokenFunc(context.Background(), "somekey"); err != ErrNotImplemented {
-		t.Error("default token function not correctly applied")
-	}
-
-	if len(cache.parseOptions) != 0 {
-		t.Error("default parser options not correctly applied")
-	}
-
-	if cache.rejectUnparsable {
-		t.Error("default reject unparsable flag not correctly applied")
 	}
 }
 
@@ -95,9 +65,9 @@ func Test_CacheMap_EnsureToken_TokenError(t *testing.T) {
 
 	// given
 	expectedErr := errors.New("expected error")
-	cache := NewCacheMap(
-		MapLogger(logger),
-		MapTokenFunction(func(ctx context.Context, key string) (s string, e error) {
+	cache := jwt.NewCacheMap(
+		jwt.MapLogger(logger),
+		jwt.MapTokenFunction(func(ctx context.Context, key string) (s string, e error) {
 			return "", expectedErr
 		}),
 	)
@@ -123,9 +93,9 @@ func Test_CacheMap_EnsureToken_Cache(t *testing.T) {
 	logger.Out = io.Discard
 
 	// given
-	cache := NewCacheMap(
-		MapLogger(logger),
-		MapTokenFunction(getMapTokenFunction()),
+	cache := jwt.NewCacheMap(
+		jwt.MapLogger(logger),
+		jwt.MapTokenFunction(getMapTokenFunction()),
 	)
 
 	// when
@@ -171,9 +141,9 @@ func Test_CacheMap_EnsureToken_Cache_Invalidation(t *testing.T) {
 	logger.Out = io.Discard
 
 	// given
-	cache := NewCacheMap(
-		MapLogger(logger),
-		MapTokenFunction(getMapExpiredTokenFunction()),
+	cache := jwt.NewCacheMap(
+		jwt.MapLogger(logger),
+		jwt.MapTokenFunction(getMapExpiredTokenFunction()),
 	)
 
 	// when
@@ -201,9 +171,9 @@ func Test_CacheMap_EnsureToken_NoExp(t *testing.T) {
 	logger.Out = io.Discard
 
 	// given
-	cache := NewCacheMap(
-		MapLogger(logger),
-		MapTokenFunction(getMapTokenFunctionWithoutExp()),
+	cache := jwt.NewCacheMap(
+		jwt.MapLogger(logger),
+		jwt.MapTokenFunction(getMapTokenFunctionWithoutExp()),
 	)
 
 	// when
@@ -231,9 +201,9 @@ func Test_CacheMap_EnsureToken_NoIat(t *testing.T) {
 	logger.Out = io.Discard
 
 	// given
-	cache := NewCacheMap(
-		MapLogger(logger),
-		MapTokenFunction(getMapTokenFunctionWithoutIat()),
+	cache := jwt.NewCacheMap(
+		jwt.MapLogger(logger),
+		jwt.MapTokenFunction(getMapTokenFunctionWithoutIat()),
 	)
 
 	// when
@@ -262,9 +232,9 @@ func Test_CacheMap_EnsureToken_BrokenParser(t *testing.T) {
 
 	// given
 	counter := 0
-	cache := NewCacheMap(
-		MapLogger(logger),
-		MapTokenFunction(func(ctx context.Context, key string) (s string, e error) {
+	cache := jwt.NewCacheMap(
+		jwt.MapLogger(logger),
+		jwt.MapTokenFunction(func(ctx context.Context, key string) (s string, e error) {
 			counter++
 			return fmt.Sprintf("not-a-valid-token-%d", counter), nil
 		}),
@@ -296,13 +266,13 @@ func Test_CacheMap_EnsureToken_BrokenParser_Reject(t *testing.T) {
 
 	// given
 	counter := 0
-	cache := NewCacheMap(
-		MapLogger(logger),
-		MapTokenFunction(func(ctx context.Context, key string) (s string, e error) {
+	cache := jwt.NewCacheMap(
+		jwt.MapLogger(logger),
+		jwt.MapTokenFunction(func(ctx context.Context, key string) (s string, e error) {
 			counter++
 			return fmt.Sprintf("not-a-valid-token-%d", counter), nil
 		}),
-		MapRejectUnparsable(true),
+		jwt.MapRejectUnparsable(true),
 	)
 
 	// when
@@ -331,19 +301,19 @@ func Test_MapCache_EnsureToken_Signed_JWT(t *testing.T) {
 	ecdsaPublicKey := ecdsaPrivateKey.Public()
 
 	// given
-	cache := NewCacheMap(
-		MapLogger(logger),
-		MapTokenFunction(func(ctx context.Context, key string) (s string, e error) {
-			signedToken, err := jwt.Sign(jwt.New(), jwa.ES512, ecdsaPrivateKey)
+	cache := jwt.NewCacheMap(
+		jwt.MapLogger(logger),
+		jwt.MapTokenFunction(func(ctx context.Context, key string) (s string, e error) {
+			signedToken, err := jwtx.Sign(jwtx.New(), jwa.ES512, ecdsaPrivateKey)
 			if err != nil {
 				return "", err
 			}
 
 			return string(signedToken), nil
 		}),
-		MapParseOptions(jwt.WithVerify(jwa.ES512, ecdsaPublicKey)),
+		jwt.MapParseOptions(jwtx.WithVerify(jwa.ES512, ecdsaPublicKey)),
 		// Set, so that verification fails if we provide a wrong JWT in the
-		MapRejectUnparsable(true),
+		jwt.MapRejectUnparsable(true),
 	)
 
 	// when

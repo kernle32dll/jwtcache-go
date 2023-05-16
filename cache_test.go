@@ -1,8 +1,9 @@
-package jwt
+package jwt_test
 
 import (
+	jwt "github.com/kernle32dll/jwtcache-go"
 	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwt"
+	jwtx "github.com/lestrrat-go/jwx/jwt"
 	"github.com/sirupsen/logrus"
 
 	"context"
@@ -17,7 +18,7 @@ import (
 )
 
 func getJwt(claims map[string]interface{}) (string, error) {
-	token := jwt.New()
+	token := jwtx.New()
 
 	// Ensure new token on every invocation - iat and exp are only second-precise,
 	// and thus don't warrant a new token without annoying sleep statements in tests.
@@ -36,7 +37,7 @@ func getJwt(claims map[string]interface{}) (string, error) {
 		}
 	}
 
-	signedT, err := jwt.Sign(token, jwa.HS512, []byte("supersecretpassphrase"))
+	signedT, err := jwtx.Sign(token, jwa.HS512, []byte("supersecretpassphrase"))
 	if err != nil {
 		return "", err
 	}
@@ -51,8 +52,8 @@ func getTokenFunction() func(ctx context.Context) (string, error) {
 
 	return func(ctx context.Context) (string, error) {
 		return getJwt(map[string]interface{}{
-			jwt.IssuedAtKey:   iat.UTC(),
-			jwt.ExpirationKey: exp.UTC(),
+			jwtx.IssuedAtKey:   iat.UTC(),
+			jwtx.ExpirationKey: exp.UTC(),
 		})
 	}
 }
@@ -60,7 +61,7 @@ func getTokenFunction() func(ctx context.Context) (string, error) {
 func getTokenFunctionWithoutIat() func(ctx context.Context) (string, error) {
 	return func(ctx context.Context) (string, error) {
 		return getJwt(map[string]interface{}{
-			jwt.ExpirationKey: time.Now().Add(time.Hour).UTC(),
+			jwtx.ExpirationKey: time.Now().Add(time.Hour).UTC(),
 		})
 	}
 }
@@ -70,8 +71,8 @@ func getExpiredTokenFunction() func(ctx context.Context) (string, error) {
 
 	return func(ctx context.Context) (string, error) {
 		return getJwt(map[string]interface{}{
-			jwt.IssuedAtKey:   now.Add(-time.Hour).UTC(),
-			jwt.ExpirationKey: now.Add(-time.Hour).UTC(),
+			jwtx.IssuedAtKey:   now.Add(-time.Hour).UTC(),
+			jwtx.ExpirationKey: now.Add(-time.Hour).UTC(),
 		})
 	}
 }
@@ -79,39 +80,8 @@ func getExpiredTokenFunction() func(ctx context.Context) (string, error) {
 func getTokenFunctionWithoutExp() func(ctx context.Context) (string, error) {
 	return func(ctx context.Context) (string, error) {
 		return getJwt(map[string]interface{}{
-			jwt.IssuedAtKey: time.Now().Add(-time.Hour).UTC(),
+			jwtx.IssuedAtKey: time.Now().Add(-time.Hour).UTC(),
 		})
-	}
-}
-
-// Tests that a new cache uses the correct defaults
-func Test_Cache_Defaults(t *testing.T) {
-	// when
-	cache := NewCache()
-
-	// then
-	if cache.name != "" {
-		t.Error("default name not correctly applied")
-	}
-
-	if cache.logger != logrus.StandardLogger() {
-		t.Error("default logger not correctly applied")
-	}
-
-	if cache.headroom != time.Second {
-		t.Error("default headroom not correctly applied")
-	}
-
-	if _, err := cache.tokenFunc(context.Background()); err != ErrNotImplemented {
-		t.Error("default token function not correctly applied")
-	}
-
-	if len(cache.parseOptions) != 0 {
-		t.Error("default parser options not correctly applied")
-	}
-
-	if cache.rejectUnparsable {
-		t.Error("default reject unparsable flag not correctly applied")
 	}
 }
 
@@ -123,9 +93,9 @@ func Test_Cache_EnsureToken_TokenError(t *testing.T) {
 
 	// given
 	expectedErr := errors.New("expected error")
-	cache := NewCache(
-		Logger(logger),
-		TokenFunction(func(ctx context.Context) (s string, e error) {
+	cache := jwt.NewCache(
+		jwt.Logger(logger),
+		jwt.TokenFunction(func(ctx context.Context) (s string, e error) {
 			return "", expectedErr
 		}),
 	)
@@ -150,9 +120,9 @@ func Test_Cache_EnsureToken_Cache(t *testing.T) {
 	logger.Out = io.Discard
 
 	// given
-	cache := NewCache(
-		Logger(logger),
-		TokenFunction(getTokenFunction()),
+	cache := jwt.NewCache(
+		jwt.Logger(logger),
+		jwt.TokenFunction(getTokenFunction()),
 	)
 
 	// when
@@ -180,9 +150,9 @@ func Test_Cache_EnsureToken_Cache_Invalidation(t *testing.T) {
 	logger.Out = io.Discard
 
 	// given
-	cache := NewCache(
-		Logger(logger),
-		TokenFunction(getExpiredTokenFunction()),
+	cache := jwt.NewCache(
+		jwt.Logger(logger),
+		jwt.TokenFunction(getExpiredTokenFunction()),
 	)
 
 	// when
@@ -210,9 +180,9 @@ func Test_Cache_EnsureToken_NoExp(t *testing.T) {
 	logger.Out = io.Discard
 
 	// given
-	cache := NewCache(
-		Logger(logger),
-		TokenFunction(getTokenFunctionWithoutExp()),
+	cache := jwt.NewCache(
+		jwt.Logger(logger),
+		jwt.TokenFunction(getTokenFunctionWithoutExp()),
 	)
 
 	// when
@@ -240,9 +210,9 @@ func Test_Cache_EnsureToken_NoIat(t *testing.T) {
 	logger.Out = io.Discard
 
 	// given
-	cache := NewCache(
-		Logger(logger),
-		TokenFunction(getTokenFunctionWithoutIat()),
+	cache := jwt.NewCache(
+		jwt.Logger(logger),
+		jwt.TokenFunction(getTokenFunctionWithoutIat()),
 	)
 
 	// when
@@ -271,9 +241,9 @@ func Test_Cache_EnsureToken_BrokenParser(t *testing.T) {
 
 	// given
 	counter := 0
-	cache := NewCache(
-		Logger(logger),
-		TokenFunction(func(ctx context.Context) (s string, e error) {
+	cache := jwt.NewCache(
+		jwt.Logger(logger),
+		jwt.TokenFunction(func(ctx context.Context) (s string, e error) {
 			counter++
 			return fmt.Sprintf("not-a-valid-token-%d", counter), nil
 		}),
@@ -305,13 +275,13 @@ func Test_Cache_EnsureToken_BrokenParser_Reject(t *testing.T) {
 
 	// given
 	counter := 0
-	cache := NewCache(
-		Logger(logger),
-		TokenFunction(func(ctx context.Context) (s string, e error) {
+	cache := jwt.NewCache(
+		jwt.Logger(logger),
+		jwt.TokenFunction(func(ctx context.Context) (s string, e error) {
 			counter++
 			return fmt.Sprintf("not-a-valid-token-%d", counter), nil
 		}),
-		RejectUnparsable(true),
+		jwt.RejectUnparsable(true),
 	)
 
 	// when
@@ -340,19 +310,19 @@ func Test_Cache_EnsureToken_Signed_JWT(t *testing.T) {
 	ecdsaPublicKey := ecdsaPrivateKey.Public()
 
 	// given
-	cache := NewCache(
-		Logger(logger),
-		TokenFunction(func(ctx context.Context) (s string, e error) {
-			signedToken, err := jwt.Sign(jwt.New(), jwa.ES512, ecdsaPrivateKey)
+	cache := jwt.NewCache(
+		jwt.Logger(logger),
+		jwt.TokenFunction(func(ctx context.Context) (s string, e error) {
+			signedToken, err := jwtx.Sign(jwtx.New(), jwa.ES512, ecdsaPrivateKey)
 			if err != nil {
 				return "", err
 			}
 
 			return string(signedToken), nil
 		}),
-		ParseOptions(jwt.WithVerify(jwa.ES512, ecdsaPublicKey)),
+		jwt.ParseOptions(jwtx.WithVerify(jwa.ES512, ecdsaPublicKey)),
 		// Set, so that verification fails if we provide a wrong JWT in the
-		RejectUnparsable(true),
+		jwt.RejectUnparsable(true),
 	)
 
 	// when

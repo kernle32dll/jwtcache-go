@@ -1,7 +1,8 @@
-package jwt
+package jwt_test
 
 import (
-	"github.com/lestrrat-go/jwx/jwt"
+	jwt "github.com/kernle32dll/jwtcache-go"
+	jwtx "github.com/lestrrat-go/jwx/jwt"
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
 
@@ -13,15 +14,15 @@ import (
 // Tests that the Name option correctly applies.
 func Test_Option_Name(t *testing.T) {
 	// given
-	option := Name("bar")
-	options := &config{name: "foo"}
+	option := jwt.Name("bar")
+	options := &jwt.Config{Name: "foo"}
 
 	// when
 	option(options)
 
 	// then
-	if options.name != "bar" {
-		t.Errorf("name not correctly applied, got %s", options.name)
+	if options.Name != "bar" {
+		t.Errorf("name not correctly applied, got %s", options.Name)
 	}
 }
 
@@ -32,13 +33,13 @@ func Test_Option_Logger(t *testing.T) {
 	newLogger, newLoggerHook := test.NewNullLogger()
 	newLogger.Level = logrus.DebugLevel
 
-	option := Logger(newLogger)
-	options := &config{logger: oldLogger}
+	option := jwt.Logger(newLogger)
+	options := &jwt.Config{Logger: oldLogger}
 
 	// when
 	option(options)
-	options.logger.Infof("foo %s", "bar")
-	options.logger.Debugf("kaese %s", "broed")
+	options.Logger.Infof("foo %s", "bar")
+	options.Logger.Debugf("kaese %s", "broed")
 
 	// then
 	if lastEntry := newLoggerHook.Entries[0]; lastEntry.Message != "foo bar" || lastEntry.Level != logrus.InfoLevel {
@@ -58,34 +59,34 @@ func Test_Option_Logger(t *testing.T) {
 // Tests that the Headroom option correctly applies.
 func Test_Option_Headroom(t *testing.T) {
 	// given
-	option := Headroom(time.Second)
-	options := &config{headroom: time.Hour}
+	option := jwt.Headroom(time.Second)
+	options := &jwt.Config{Headroom: time.Hour}
 
 	// when
 	option(options)
 
 	// then
-	if options.headroom != time.Second {
-		t.Errorf("headroom not correctly applied, got %s", options.headroom)
+	if options.Headroom != time.Second {
+		t.Errorf("headroom not correctly applied, got %s", options.Headroom)
 	}
 }
 
 // Tests that the TokenFunction option correctly applies.
 func Test_Option_TokenFunction(t *testing.T) {
 	// given
-	option := TokenFunction(func(ctx context.Context) (s string, e error) {
+	option := jwt.TokenFunction(func(ctx context.Context) (s string, e error) {
 		return "some-token", nil
 	})
 
-	options := &config{tokenFunc: func(ctx context.Context) (s string, e error) {
-		return "", ErrNotImplemented
+	options := &jwt.Config{TokenFunc: func(ctx context.Context) (s string, e error) {
+		return "", jwt.ErrNotImplemented
 	}}
 
 	// when
 	option(options)
 
 	// then
-	if token, err := options.tokenFunc(context.Background()); token != "some-token" || err != nil {
+	if token, err := options.TokenFunc(context.Background()); token != "some-token" || err != nil {
 		t.Errorf("token function not correctly applied, got %s ; %s", token, err)
 	}
 }
@@ -93,32 +94,32 @@ func Test_Option_TokenFunction(t *testing.T) {
 // Tests that the ParseOptions option correctly applies.
 func Test_Option_ParseOptions(t *testing.T) {
 	// given
-	newOption := jwt.WithIssuer("issuer")
-	option := ParseOptions(newOption)
-	options := &config{parseOptions: []jwt.ParseOption{
-		jwt.WithAudience("audience"),
+	newOption := jwtx.WithIssuer("issuer")
+	option := jwt.ParseOptions(newOption)
+	options := &jwt.Config{ParseOptions: []jwtx.ParseOption{
+		jwtx.WithAudience("audience"),
 	}}
 
 	// when
 	option(options)
 
 	// then
-	if len(options.parseOptions) != 1 || options.parseOptions[0] != newOption {
-		t.Errorf("parse options not correctly applied, got %s", options.parseOptions)
+	if len(options.ParseOptions) != 1 || options.ParseOptions[0] != newOption {
+		t.Errorf("parse options not correctly applied, got %s", options.ParseOptions)
 	}
 }
 
 // Tests that the RejectUnparsable option correctly applies.
 func Test_Option_RejectUnparsable(t *testing.T) {
 	// given
-	option := RejectUnparsable(true)
-	options := &config{rejectUnparsable: false}
+	option := jwt.RejectUnparsable(true)
+	options := &jwt.Config{RejectUnparsable: false}
 
 	// when
 	option(options)
 
 	// then
-	if !options.rejectUnparsable {
-		t.Errorf("reject unparsable not correctly applied, got %t", options.rejectUnparsable)
+	if !options.RejectUnparsable {
+		t.Errorf("reject unparsable not correctly applied, got %t", options.RejectUnparsable)
 	}
 }
