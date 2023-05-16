@@ -11,7 +11,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"testing"
 	"time"
 )
@@ -91,7 +91,7 @@ func Test_CacheMap_Defaults(t *testing.T) {
 // while retrieving a new token.
 func Test_CacheMap_EnsureToken_TokenError(t *testing.T) {
 	logger := logrus.New()
-	logger.Out = ioutil.Discard
+	logger.Out = io.Discard
 
 	// given
 	expectedErr := errors.New("expected error")
@@ -120,7 +120,7 @@ func Test_CacheMap_EnsureToken_TokenError(t *testing.T) {
 // does warrant a new token again.
 func Test_CacheMap_EnsureToken_Cache(t *testing.T) {
 	logger := logrus.New()
-	logger.Out = ioutil.Discard
+	logger.Out = io.Discard
 
 	// given
 	cache := NewCacheMap(
@@ -168,7 +168,7 @@ func Test_CacheMap_EnsureToken_Cache(t *testing.T) {
 // cached token expires
 func Test_CacheMap_EnsureToken_Cache_Invalidation(t *testing.T) {
 	logger := logrus.New()
-	logger.Out = ioutil.Discard
+	logger.Out = io.Discard
 
 	// given
 	cache := NewCacheMap(
@@ -198,7 +198,7 @@ func Test_CacheMap_EnsureToken_Cache_Invalidation(t *testing.T) {
 // token provides not exp claim.
 func Test_CacheMap_EnsureToken_NoExp(t *testing.T) {
 	logger := logrus.New()
-	logger.Out = ioutil.Discard
+	logger.Out = io.Discard
 
 	// given
 	cache := NewCacheMap(
@@ -228,7 +228,7 @@ func Test_CacheMap_EnsureToken_NoExp(t *testing.T) {
 // call the token function multiple times - even if the iat claim is missing.
 func Test_CacheMap_EnsureToken_NoIat(t *testing.T) {
 	logger := logrus.New()
-	logger.Out = ioutil.Discard
+	logger.Out = io.Discard
 
 	// given
 	cache := NewCacheMap(
@@ -258,7 +258,7 @@ func Test_CacheMap_EnsureToken_NoIat(t *testing.T) {
 // if it can't be parsed for caching usage.
 func Test_CacheMap_EnsureToken_BrokenParser(t *testing.T) {
 	logger := logrus.New()
-	logger.Out = ioutil.Discard
+	logger.Out = io.Discard
 
 	// given
 	counter := 0
@@ -292,7 +292,7 @@ func Test_CacheMap_EnsureToken_BrokenParser(t *testing.T) {
 // is enabled, and the token cannot be parsed (e.g. due to a signing error)
 func Test_CacheMap_EnsureToken_BrokenParser_Reject(t *testing.T) {
 	logger := logrus.New()
-	logger.Out = ioutil.Discard
+	logger.Out = io.Discard
 
 	// given
 	counter := 0
@@ -322,7 +322,7 @@ func Test_CacheMap_EnsureToken_BrokenParser_Reject(t *testing.T) {
 // if configured.
 func Test_MapCache_EnsureToken_Signed_JWT(t *testing.T) {
 	logger := logrus.New()
-	logger.Out = ioutil.Discard
+	logger.Out = io.Discard
 
 	ecdsaPrivateKey, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	if err != nil {

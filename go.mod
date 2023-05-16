@@ -1,11 +1,21 @@
 module github.com/kernle32dll/jwtcache-go
 
-go 1.15
+go 1.20
 
 require (
+	github.com/lestrrat-go/jwx v1.2.25
+	github.com/sirupsen/logrus v1.9.0
+)
+
+require (
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
+	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
-	github.com/lestrrat-go/jwx v1.1.5
-	github.com/sirupsen/logrus v1.8.1
-	golang.org/x/crypto v0.0.0-20210314154223-e6e6c4f2bb5b // indirect
-	golang.org/x/sys v0.0.0-20210316092937-0b90fd5c4c48 // indirect
+	github.com/lestrrat-go/blackmagic v1.0.1 // indirect
+	github.com/lestrrat-go/httpcc v1.0.1 // indirect
+	github.com/lestrrat-go/iter v1.0.2 // indirect
+	github.com/lestrrat-go/option v1.0.1 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	golang.org/x/crypto v0.9.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
 )
