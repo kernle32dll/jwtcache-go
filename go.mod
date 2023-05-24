@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/lestrrat-go/jwx v1.2.25
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.2
 )
 
 require (
